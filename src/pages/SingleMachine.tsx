@@ -81,6 +81,13 @@ const SingleMachine = () => {
       const { name, value } = event.target;
       const updatedData = { [name as keyof MachineRented]: value as unknown };
       const newMachine = { ...machine, ...updatedData } as MachineRented;
+      if (name === 'maintenance_type') {
+        if ((value as MachineRented['maintenance_type']) === 'BY_DAY') {
+          newMachine.nb_rental_before_maintenance = null;
+        } else {
+          newMachine.nb_day_before_maintenance = null;
+        }
+      }
       setMachine(newMachine);
     },
     [id, machine, auth.token],
