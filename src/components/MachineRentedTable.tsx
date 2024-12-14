@@ -12,13 +12,9 @@ import {
   IconButton,
   MenuItem,
   Paper,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
 import { useAuth } from '../hooks/AuthProvider';
 import { useTheme } from '@mui/material/styles';
 import type { ColDef } from 'ag-grid-community/dist/types/core/entities/colDef';
@@ -32,6 +28,7 @@ import { MachineRented, MachineRentedCreated } from '../utils/types';
 import { TYPE_VALUE_ASSOCIATION } from '../config/constants';
 import { MachineSelect } from './machine/MachineSelect';
 import SingleMachineField from './machine/SingleMachineField';
+import { toast } from 'react-toastify';
 
 const rowHeight = 40;
 
@@ -45,12 +42,12 @@ const MachineRentedTable: React.FC = () => {
   );
   const [loading, setLoading] = useState(true);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
-  const [isModalOpen, setIsModalOpen] = useState(false); // État pour le modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [newMachine, setNewMachine] = useState<MachineRentedCreated>({
     name: '',
     maintenance_type: 'BY_DAY',
     nb_day_before_maintenance: 0,
-    nb_rental_before_maintenance: 0,
+    nb_rental_before_maintenance: null,
     last_maintenance_date: null,
   });
 
@@ -84,12 +81,12 @@ const MachineRentedTable: React.FC = () => {
         name: '',
         maintenance_type: 'BY_DAY',
         nb_day_before_maintenance: 0,
-        nb_rental_before_maintenance: 0,
+        nb_rental_before_maintenance: null,
         last_maintenance_date: null,
       });
     } catch (error) {
       console.error("Erreur lors de l'ajout :", error);
-      alert("Une erreur s'est produite lors de l'ajout de la machine");
+      toast.error("Une erreur s'est produite lors de l'ajout de la machine");
     }
   };
 
@@ -253,87 +250,59 @@ const MachineRentedTable: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         classes={{ paper: 'dialog-paper' }}
       >
-        <form onSubmit={handleAddMachine}>
-          <DialogTitle>Ajouter une machine</DialogTitle>
-          <DialogContent>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <SingleMachineField
-                label="Nom"
-                name={'name'}
-                value={newMachine.name}
-                valueType={'text'}
-                isMultiline={false}
-                isEditing={true}
-                handleChange={(value, name) => {
-                  setNewMachine({ ...newMachine, [name]: value });
-                }}
-                xs={12}
-                required
-              />
-              <MachineSelect
-                required
-                xs={12}
-                isEditing={true}
-                name={'maintenance_type'}
-                sx={{ width: '100%' }}
-                label="Type de maintenance"
-                value={newMachine.maintenance_type}
-                onChange={(e) => {
-                  const newType = e.target
-                    .value as MachineRentedCreated['maintenance_type'];
-                  setNewMachine({
-                    ...newMachine,
-                    maintenance_type: newType,
-                    ...(newType === 'BY_DAY' && {
-                      nb_rental_before_maintenance: null,
-                    }),
-                    ...(newType === 'BY_NB_RENTAL' && {
-                      nb_day_before_maintenance: null,
-                    }),
-                  });
-                }}
-                strings={['BY_DAY', 'BY_NB_RENTAL']}
-                callbackfn={(val) => (
-                  <MenuItem key={val} value={val}>
-                    {TYPE_VALUE_ASSOCIATION[val] ?? val}
-                  </MenuItem>
-                )}
-                colorByValue={{}}
-                renderValue={(val) => TYPE_VALUE_ASSOCIATION[val] ?? val}
-              />
-              {newMachine.maintenance_type === 'BY_DAY' && (
-                <SingleMachineField
-                  label="Nb jours avant maintenance"
-                  name="nb_day_before_maintenance"
-                  value={newMachine.nb_day_before_maintenance}
-                  valueType={'number'}
-                  isMultiline={false}
-                  isEditing={true}
-                  handleChange={(value, name) => {
-                    setNewMachine({ ...newMachine, [name]: value });
-                  }}
-                  xs={12}
-                />
+        <DialogTitle>Ajouter une machine</DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2}>
+            <SingleMachineField
+              label="Nom"
+              name={'name'}
+              value={newMachine.name}
+              valueType={'text'}
+              isMultiline={false}
+              isEditing={true}
+              handleChange={(value, name) => {
+                setNewMachine({ ...newMachine, [name]: value });
+              }}
+              xs={12}
+              required
+            />
+            <MachineSelect
+              required
+              xs={12}
+              isEditing={true}
+              name={'maintenance_type'}
+              sx={{ width: '100%' }}
+              label="Type de maintenance"
+              value={newMachine.maintenance_type}
+              onChange={(e) => {
+                const newType = e.target
+                  .value as MachineRentedCreated['maintenance_type'];
+                setNewMachine({
+                  ...newMachine,
+                  maintenance_type: newType,
+                  ...(newType === 'BY_DAY' && {
+                    nb_rental_before_maintenance: null,
+                  }),
+                  ...(newType === 'BY_NB_RENTAL' && {
+                    nb_day_before_maintenance: null,
+                  }),
+                });
+              }}
+              strings={['BY_DAY', 'BY_NB_RENTAL']}
+              callbackfn={(val) => (
+                <MenuItem key={val} value={val}>
+                  {TYPE_VALUE_ASSOCIATION[val] ?? val}
+                </MenuItem>
               )}
-              {newMachine.maintenance_type === 'BY_NB_RENTAL' && (
-                <SingleMachineField
-                  label="Nb locations avant maintenance"
-                  name="nb_rental_before_maintenance"
-                  value={newMachine.nb_rental_before_maintenance}
-                  valueType={'number'}
-                  isMultiline={false}
-                  isEditing={true}
-                  handleChange={(value, name) => {
-                    setNewMachine({ ...newMachine, [name]: value });
-                  }}
-                  xs={12}
-                />
-              )}
+              colorByValue={{}}
+              renderValue={(val) => TYPE_VALUE_ASSOCIATION[val] ?? val}
+            />
+            {newMachine.maintenance_type === 'BY_DAY' && (
               <SingleMachineField
-                label="Dernière maintenance"
-                name="last_maintenance_date"
-                value={newMachine.last_maintenance_date}
-                valueType={'date'}
+                label="Nb jours avant maintenance"
+                name="nb_day_before_maintenance"
+                value={newMachine.nb_day_before_maintenance}
+                valueType={'number'}
                 isMultiline={false}
                 isEditing={true}
                 handleChange={(value, name) => {
@@ -341,28 +310,54 @@ const MachineRentedTable: React.FC = () => {
                 }}
                 xs={12}
               />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setIsModalOpen(false)}>Annuler</Button>
-            <Button
-              variant="contained"
-              color="primary"
-              type="submit"
-              disabled={
-                !newMachine.name ||
-                !newMachine.maintenance_type ||
-                !newMachine.last_maintenance_date ||
-                (newMachine.maintenance_type === 'BY_DAY' &&
-                  !newMachine.nb_day_before_maintenance) ||
-                (newMachine.maintenance_type === 'BY_NB_RENTAL' &&
-                  !newMachine.nb_rental_before_maintenance)
-              }
-            >
-              Ajouter
-            </Button>
-          </DialogActions>
-        </form>
+            )}
+            {newMachine.maintenance_type === 'BY_NB_RENTAL' && (
+              <SingleMachineField
+                label="Nb locations avant maintenance"
+                name="nb_rental_before_maintenance"
+                value={newMachine.nb_rental_before_maintenance}
+                valueType={'number'}
+                isMultiline={false}
+                isEditing={true}
+                handleChange={(value, name) => {
+                  setNewMachine({ ...newMachine, [name]: value });
+                }}
+                xs={12}
+              />
+            )}
+            <SingleMachineField
+              label="Dernière maintenance"
+              name="last_maintenance_date"
+              value={newMachine.last_maintenance_date}
+              valueType={'date'}
+              isMultiline={false}
+              isEditing={true}
+              handleChange={(value, name) => {
+                setNewMachine({ ...newMachine, [name]: value });
+              }}
+              xs={12}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsModalOpen(false)}>Annuler</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleAddMachine}
+            disabled={
+              !newMachine.name ||
+              !newMachine.maintenance_type ||
+              !newMachine.last_maintenance_date ||
+              (newMachine.maintenance_type === 'BY_DAY' &&
+                !newMachine.nb_day_before_maintenance) ||
+              (newMachine.maintenance_type === 'BY_NB_RENTAL' &&
+                !newMachine.nb_rental_before_maintenance)
+            }
+          >
+            Ajouter
+          </Button>
+        </DialogActions>
       </Dialog>
     </Paper>
   );

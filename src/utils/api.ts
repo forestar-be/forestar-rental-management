@@ -1,5 +1,4 @@
 import {
-  MachineRentalCreated,
   MachineRented,
   MachineRentedCreated,
   MachineRentedUpdatedData,
@@ -66,31 +65,16 @@ export const updateMachine = async (
   data: MachineRentedUpdatedData,
   token: string,
 ) => {
-  const response = await apiRequest(
+  return await apiRequest(
     `/rental-mngt/machine-rented/${id}`,
     'PATCH',
     token,
     data,
   );
-  return response;
 };
 
 export const deleteMachineApi = async (id: string, token: string) => {
-  await apiRequest(`/rental-mngt/machine-repairs/${id}`, 'DELETE', token);
-};
-
-export const addRentalApi = async (
-  id: string,
-  rental: MachineRentalCreated,
-  token: string,
-) => {
-  const response = await apiRequest(
-    `/rental-mngt/machine-repairs/${id}/rental`,
-    'PUT',
-    token,
-    rental,
-  );
-  return response;
+  await apiRequest(`/rental-mngt/machine-rented/${id}`, 'DELETE', token);
 };
 
 export const addMachineRented = async (

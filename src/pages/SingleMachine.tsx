@@ -227,7 +227,6 @@ const SingleMachine = () => {
           >
             Supprimer la machine
           </Button>
-          <Button color="primary">Ajouter une location</Button>
         </Grid>
       </Grid>
       {machine && (
