@@ -57,11 +57,33 @@ const SingleMachine = () => {
         }, {});
         if (Object.keys(updatedData).length > 0) {
           updateMachine(id!, updatedData, auth.token)
-            .then((newPartialMachine: Partial<MachineRented>) => {
+            .then(({ eventUpdateType, ...newPartialMachine }) => {
               toast.success('Machine mise à jour');
               const newMachine = { ...machine, ...newPartialMachine };
               setMachine(newMachine);
               setInitialMachine(newMachine);
+
+              if (eventUpdateType && eventUpdateType !== 'none') {
+                switch (eventUpdateType) {
+                  case 'create':
+                    toast.success(
+                      "Evénement d'entretien crée dans le calendrier",
+                    );
+                    break;
+                  case 'update':
+                    toast.success(
+                      "Evénement d'entretien mis à jour dans le calendrier",
+                    );
+                    break;
+                  case 'delete':
+                    toast.success(
+                      "Evénement d'entretien supprimé dans le calendrier",
+                    );
+                    break;
+                  default:
+                    break;
+                }
+              }
             })
             .catch((error: Error) => {
               toast.error(
