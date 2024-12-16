@@ -7,6 +7,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Divider from '@mui/material/Divider';
+import 'dayjs/locale/fr';
 
 export const MachineRentalItem = ({
   editing,
@@ -22,54 +23,54 @@ export const MachineRentalItem = ({
   onDelete: () => void;
 }) => (
   <React.Fragment>
-    <Grid container spacing={2} sx={{ mb: 2, mt: 2 }}>
-      <Grid item xs={5}>
-        {editing ? (
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={'fr'}>
+      <Grid container spacing={2} sx={{ mb: 2, mt: 2 }}>
+        <Grid item xs={5}>
+          {editing ? (
             <DatePicker
+              format={'DD/MM/YYYY'}
               label="Début"
               value={dayjs(rentalDate)}
               onChange={onChangeRentalDate}
             />
-          </LocalizationProvider>
-        ) : (
-          <Typography variant="body1">
-            Début : {new Date(rentalDate).toLocaleDateString('fr-FR')}
-          </Typography>
-        )}
-      </Grid>
-      <Grid item xs={5}>
-        {editing ? (
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
+          ) : (
+            <Typography variant="body1">
+              Début : {new Date(rentalDate).toLocaleDateString('fr-FR')}
+            </Typography>
+          )}
+        </Grid>
+        <Grid item xs={5}>
+          {editing ? (
             <DatePicker
+              format={'DD/MM/YYYY'}
               label="Retour"
               value={returnDate ? dayjs(returnDate) : null}
               onChange={onChangeReturnDate}
             />
-          </LocalizationProvider>
-        ) : (
-          <Typography variant="body1">
-            Retour :{' '}
-            {returnDate
-              ? new Date(returnDate).toLocaleDateString('fr-FR')
-              : 'Non retourné'}
-          </Typography>
-        )}
+          ) : (
+            <Typography variant="body1">
+              Retour :{' '}
+              {returnDate
+                ? new Date(returnDate).toLocaleDateString('fr-FR')
+                : 'Non retourné'}
+            </Typography>
+          )}
+        </Grid>
+        <Grid
+          item
+          xs={2}
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+        >
+          {editing && (
+            <IconButton color="error" onClick={onDelete}>
+              <DeleteIcon />
+            </IconButton>
+          )}
+        </Grid>
       </Grid>
-      <Grid
-        item
-        xs={2}
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-      >
-        {editing && (
-          <IconButton color="error" onClick={onDelete}>
-            <DeleteIcon />
-          </IconButton>
-        )}
-      </Grid>
-    </Grid>
-    <Divider />
+      <Divider />
+    </LocalizationProvider>
   </React.Fragment>
 );

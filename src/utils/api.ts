@@ -64,7 +64,9 @@ export const updateMachine = async (
   id: string,
   data: MachineRentedUpdatedData,
   token: string,
-) => {
+): Promise<
+  MachineRented & { eventUpdateType: 'update' | 'delete' | 'create' | 'none' }
+> => {
   return await apiRequest(
     `/rental-mngt/machine-rented/${id}`,
     'PATCH',
