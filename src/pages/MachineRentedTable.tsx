@@ -1,20 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  MenuItem,
-  Paper,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Button, IconButton, Paper, Tooltip, Typography } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import { useTheme } from '@mui/material/styles';
 import type { ColDef } from 'ag-grid-community/dist/types/core/entities/colDef';
@@ -22,13 +10,13 @@ import { AG_GRID_LOCALE_FR } from '@ag-grid-community/locale';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import '../styles/MachineRentedTable.css';
-import { getAllMachineRented, addMachineRented } from '../utils/api';
+import { addMachineRented, getAllMachineRented } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { MachineRented, MachineRentedCreated } from '../utils/types';
 import { TYPE_VALUE_ASSOCIATION } from '../config/constants';
-import { MachineSelect } from './machine/MachineSelect';
-import SingleMachineField from './machine/SingleMachineField';
 import { toast } from 'react-toastify';
+import { compressImage } from '../utils/common.utils';
+import CreateMachineDialog from '../components/CreateMachineDialog';
 
 const rowHeight = 40;
 
@@ -40,15 +28,19 @@ const MachineRentedTable: React.FC = () => {
   const [machineRentedList, setMachineRentedList] = useState<MachineRented[]>(
     [],
   );
+  const [loadingImage, setLoadingImage] = useState(false);
+  const [loadingCreate, setLoadingCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newMachine, setNewMachine] = useState<MachineRentedCreated>({
+  const [initialValues, setInitialValues] = useState<MachineRentedCreated>({
     name: '',
     maintenance_type: 'BY_DAY',
     nb_day_before_maintenance: 0,
     nb_rental_before_maintenance: null,
     last_maintenance_date: null,
+    price_per_day: 0,
+    guests: [],
   });
 
   const fetchData = async () => {
@@ -72,21 +64,28 @@ const MachineRentedTable: React.FC = () => {
     calculatePageSize();
   }, [machineRentedList]);
 
-  const handleAddMachine = async () => {
+  const handleAddMachine = async (
+    values: MachineRentedCreated & { image: File },
+  ) => {
     try {
-      const addedMachine = await addMachineRented(newMachine, auth.token);
+      setLoadingCreate(true);
+      const addedMachine = await addMachineRented(values, auth.token);
       setMachineRentedList((prev) => [...prev, addedMachine]);
       setIsModalOpen(false);
-      setNewMachine({
+      setInitialValues({
         name: '',
         maintenance_type: 'BY_DAY',
         nb_day_before_maintenance: 0,
         nb_rental_before_maintenance: null,
         last_maintenance_date: null,
+        price_per_day: 0,
+        guests: [],
       });
     } catch (error) {
       console.error("Erreur lors de l'ajout :", error);
       toast.error("Une erreur s'est produite lors de l'ajout de la machine");
+    } finally {
+      setLoadingCreate(false);
     }
   };
 
@@ -100,11 +99,11 @@ const MachineRentedTable: React.FC = () => {
             <IconButton
               color="primary"
               component="a"
-              href={`/machine/${params.value}`}
+              href={`/machines/${params.value}`}
               rel="noopener noreferrer"
               onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                 e.preventDefault();
-                navigate(`/machine/${params.value}`);
+                navigate(`/machines/${params.value}`);
               }}
             >
               <VisibilityIcon />
@@ -114,7 +113,7 @@ const MachineRentedTable: React.FC = () => {
             <IconButton
               color="primary"
               component="a"
-              href={`/machine/${params.value}`}
+              href={`/machines/${params.value}`}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -207,7 +206,10 @@ const MachineRentedTable: React.FC = () => {
   }, []);
 
   return (
-    <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Paper
+      sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+      id="machineRentedTable"
+    >
       <div
         style={{
           padding: 16,
@@ -233,7 +235,7 @@ const MachineRentedTable: React.FC = () => {
         <AgGridReact
           rowHeight={rowHeight}
           ref={gridRef}
-          rowData={machineRentedList}
+          rowData={loading ? [] : machineRentedList}
           columnDefs={columns}
           pagination={true}
           paginationPageSize={paginationPageSize}
@@ -242,123 +244,27 @@ const MachineRentedTable: React.FC = () => {
             type: 'fitGridWidth',
           }}
           paginationPageSizeSelector={false}
+          overlayLoadingTemplate={
+            '<span class="ag-overlay-loading-center">Chargement...</span>'
+          }
+          loadingOverlayComponentParams={{ loading }}
+          onGridReady={(params) => {
+            if (loading) {
+              params.api.showLoadingOverlay();
+            } else {
+              params.api.hideOverlay();
+            }
+          }}
         />
       </div>
 
-      <Dialog
+      <CreateMachineDialog
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        classes={{ paper: 'dialog-paper' }}
-      >
-        <DialogTitle>Ajouter une machine</DialogTitle>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2}>
-            <SingleMachineField
-              label="Nom"
-              name={'name'}
-              value={newMachine.name}
-              valueType={'text'}
-              isMultiline={false}
-              isEditing={true}
-              handleChange={(value, name) => {
-                setNewMachine({ ...newMachine, [name]: value });
-              }}
-              xs={12}
-              required
-            />
-            <MachineSelect
-              required
-              xs={12}
-              isEditing={true}
-              name={'maintenance_type'}
-              sx={{ width: '100%' }}
-              label="Type de maintenance"
-              value={newMachine.maintenance_type}
-              onChange={(e) => {
-                const newType = e.target
-                  .value as MachineRentedCreated['maintenance_type'];
-                setNewMachine({
-                  ...newMachine,
-                  maintenance_type: newType,
-                  ...(newType === 'BY_DAY' && {
-                    nb_rental_before_maintenance: null,
-                  }),
-                  ...(newType === 'BY_NB_RENTAL' && {
-                    nb_day_before_maintenance: null,
-                  }),
-                });
-              }}
-              strings={['BY_DAY', 'BY_NB_RENTAL']}
-              callbackfn={(val) => (
-                <MenuItem key={val} value={val}>
-                  {TYPE_VALUE_ASSOCIATION[val] ?? val}
-                </MenuItem>
-              )}
-              colorByValue={{}}
-              renderValue={(val) => TYPE_VALUE_ASSOCIATION[val] ?? val}
-            />
-            {newMachine.maintenance_type === 'BY_DAY' && (
-              <SingleMachineField
-                label="Nb jours avant maintenance"
-                name="nb_day_before_maintenance"
-                value={newMachine.nb_day_before_maintenance}
-                valueType={'number'}
-                isMultiline={false}
-                isEditing={true}
-                handleChange={(value, name) => {
-                  setNewMachine({ ...newMachine, [name]: value });
-                }}
-                xs={12}
-              />
-            )}
-            {newMachine.maintenance_type === 'BY_NB_RENTAL' && (
-              <SingleMachineField
-                label="Nb locations avant maintenance"
-                name="nb_rental_before_maintenance"
-                value={newMachine.nb_rental_before_maintenance}
-                valueType={'number'}
-                isMultiline={false}
-                isEditing={true}
-                handleChange={(value, name) => {
-                  setNewMachine({ ...newMachine, [name]: value });
-                }}
-                xs={12}
-              />
-            )}
-            <SingleMachineField
-              label="Dernière maintenance"
-              name="last_maintenance_date"
-              value={newMachine.last_maintenance_date}
-              valueType={'date'}
-              isMultiline={false}
-              isEditing={true}
-              handleChange={(value, name) => {
-                setNewMachine({ ...newMachine, [name]: value });
-              }}
-              xs={12}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsModalOpen(false)}>Annuler</Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleAddMachine}
-            disabled={
-              !newMachine.name ||
-              !newMachine.maintenance_type ||
-              !newMachine.last_maintenance_date ||
-              (newMachine.maintenance_type === 'BY_DAY' &&
-                !newMachine.nb_day_before_maintenance) ||
-              (newMachine.maintenance_type === 'BY_NB_RENTAL' &&
-                !newMachine.nb_rental_before_maintenance)
-            }
-          >
-            Ajouter
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSubmit={handleAddMachine}
+        loadingCreate={loadingCreate}
+        initialValues={initialValues}
+      />
     </Paper>
   );
 };

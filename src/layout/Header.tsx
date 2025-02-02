@@ -9,6 +9,9 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import HomeIcon from '@mui/icons-material/Home';
+import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useTheme } from '@mui/material/styles';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -17,6 +20,7 @@ import headerData from '../config/header.json';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../hooks/AuthProvider';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@mui/material';
 
 interface Props {
   onSidebarOpen: () => void;
@@ -82,31 +86,86 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
             }}
           ></Box>
           {auth.token && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton
-                component="a"
-                href={`/parametres`}
-                onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                  e.preventDefault();
-                  navigate(`/parametres`);
+            <>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  component="a"
+                  href={`/`}
+                  onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                    e.preventDefault();
+                    navigate(`/`);
+                  }}
+                  aria-label="Accueil"
+                  color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
+                  startIcon={<HomeIcon fontSize="medium" />}
+                  variant="contained"
+                >
+                  Accueil
+                </Button>
+                <Button
+                  component="a"
+                  href={`/locations`}
+                  onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                    e.preventDefault();
+                    navigate(`/locations`);
+                  }}
+                  aria-label="Locations"
+                  color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
+                  startIcon={<CalendarMonthIcon fontSize="medium" />}
+                  variant="contained"
+                >
+                  Locations
+                </Button>
+                <Button
+                  component="a"
+                  href={`/machines`}
+                  onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                    e.preventDefault();
+                    navigate(`/machines`);
+                  }}
+                  aria-label="Machines"
+                  color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
+                  startIcon={<PrecisionManufacturingIcon fontSize="medium" />}
+                  variant="contained"
+                >
+                  Machines
+                </Button>
+              </Box>
+
+              <Divider
+                orientation="vertical"
+                sx={{
+                  height: 32,
+                  marginX: 2,
+                  display: { lg: 'flex', md: 'none', xs: 'none' },
                 }}
-                aria-label="Paramètres"
-                color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
-              >
-                <Tooltip title="Paramètres">
-                  <SettingsIcon fontSize="medium" />
-                </Tooltip>
-              </IconButton>
-              <IconButton
-                onClick={auth.logOut}
-                aria-label="Déconnexion"
-                color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
-              >
-                <Tooltip title="Déconnexion">
-                  <LogoutIcon fontSize="medium" />
-                </Tooltip>
-              </IconButton>
-            </Box>
+              />
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <IconButton
+                  component="a"
+                  href={`/parametres`}
+                  onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                    e.preventDefault();
+                    navigate(`/parametres`);
+                  }}
+                  aria-label="Paramètres"
+                  color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
+                >
+                  <Tooltip title="Paramètres">
+                    <SettingsIcon fontSize="medium" />
+                  </Tooltip>
+                </IconButton>
+                <IconButton
+                  onClick={auth.logOut}
+                  aria-label="Déconnexion"
+                  color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
+                >
+                  <Tooltip title="Déconnexion">
+                    <LogoutIcon fontSize="medium" />
+                  </Tooltip>
+                </IconButton>
+              </Box>
+            </>
           )}
           <Divider
             orientation="vertical"
