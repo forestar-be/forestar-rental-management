@@ -20,6 +20,8 @@ export const MachineSelect = (props: {
   label: string;
   value: string;
   onChange: (event: SelectChangeEvent<String>) => void;
+  onBlur?: (event: React.FocusEvent) => void;
+  error?: boolean | undefined;
   strings: string[];
   callbackfn: (val: any) => React.JSX.Element;
   colorByValue: { [p: string]: string };
@@ -39,6 +41,8 @@ export const MachineSelect = (props: {
           name={props.name}
           onChange={props.onChange}
           required={props.required}
+          onBlur={props.onBlur}
+          error={props.error}
           input={
             <OutlinedInput
               id={`select-multiple-chip-${props.name}`}

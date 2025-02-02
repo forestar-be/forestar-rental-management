@@ -14,7 +14,7 @@ export const MachineRentalItem = ({
   onChangeRentalDate,
   onChangeReturnDate,
   onDelete,
-  rental: { rentalDate, returnDate },
+  rental: { rentalDate, returnDate, clientFirstName, clientLastName },
 }: {
   editing: boolean;
   rental: MachineRental;
@@ -25,9 +25,15 @@ export const MachineRentalItem = ({
   <React.Fragment>
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={'fr'}>
       <Grid container spacing={2} sx={{ mb: 2, mt: 2 }}>
-        <Grid item xs={5}>
+        <Grid item xs={4}>
+          <Typography variant="body1">
+            Client: {`${clientFirstName} ${clientLastName}`}
+          </Typography>
+        </Grid>
+        <Grid item xs={4}>
           {editing ? (
             <DatePicker
+              timezone={'Europe/Paris'}
               format={'DD/MM/YYYY'}
               label="Début"
               value={dayjs(rentalDate)}
@@ -35,13 +41,17 @@ export const MachineRentalItem = ({
             />
           ) : (
             <Typography variant="body1">
-              Début : {new Date(rentalDate).toLocaleDateString('fr-FR')}
+              Début :{' '}
+              {rentalDate
+                ? new Date(rentalDate).toLocaleDateString('fr-FR')
+                : 'Erreur: date invalide'}
             </Typography>
           )}
         </Grid>
-        <Grid item xs={5}>
+        <Grid item xs={4}>
           {editing ? (
             <DatePicker
+              timezone={'Europe/Paris'}
               format={'DD/MM/YYYY'}
               label="Retour"
               value={returnDate ? dayjs(returnDate) : null}
