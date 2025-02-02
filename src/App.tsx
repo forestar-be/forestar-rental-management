@@ -13,6 +13,12 @@ import Login from './pages/Login';
 import AuthRoute from './components/AuthRoute';
 import AuthProvider from './hooks/AuthProvider';
 import SingleMachine from './pages/SingleMachine';
+import MachineRentedTable from './pages/MachineRentedTable';
+import NotFoundPage from './pages/NotFoundPage';
+import MachineRentalTable from './pages/MachineRentalTable';
+import SingleRental from './pages/SingleRental';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 const defaultTheme = 'light';
 
@@ -51,16 +57,31 @@ const App = (): JSX.Element => {
           <CssBaseline />
           <BrowserRouter>
             <AuthProvider>
-              <Layout>
-                <ToastContainer />
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route element={<AuthRoute />}>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/machine/:id" element={<SingleMachine />} />
-                  </Route>
-                </Routes>
-              </Layout>
+              <LocalizationProvider
+                dateAdapter={AdapterDayjs}
+                adapterLocale={'fr'}
+              >
+                <Layout>
+                  <ToastContainer />
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route element={<AuthRoute />}>
+                      <Route path="/" element={<Home />} />
+                      <Route
+                        path="/machines"
+                        element={<MachineRentedTable />}
+                      />
+                      <Route path="/machines/:id" element={<SingleMachine />} />
+                      <Route
+                        path="/locations"
+                        element={<MachineRentalTable />}
+                      />
+                      <Route path="/locations/:id" element={<SingleRental />} />
+                    </Route>
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Layout>
+              </LocalizationProvider>
             </AuthProvider>
           </BrowserRouter>
         </ThemeProvider>

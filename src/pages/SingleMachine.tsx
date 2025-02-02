@@ -5,6 +5,8 @@ import {
   Button,
   Grid,
   IconButton,
+  ImageList,
+  ImageListItem,
   MenuItem,
   SxProps,
   Theme,
@@ -13,33 +15,46 @@ import {
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
 import { useTheme } from '@mui/material/styles';
-import SingleMachineField from '../components/machine/SingleMachineField';
+import SingleField from '../components/machine/SingleField';
 import { MachineLoading } from '../components/machine/MachineLoading';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { MachineRented } from '../utils/types';
+import {
+  MachineRentalWithMachineRented,
+  MachineRentedWithImage,
+} from '../utils/types';
 import { Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
 import {
   deleteMachineApi,
   fetchMachineById,
   updateMachine,
+  updateMachineRentedImage,
 } from '../utils/api';
 import { toast } from 'react-toastify';
 import { MachineSelect } from '../components/machine/MachineSelect';
 import { SelectChangeEvent } from '@mui/material/Select/SelectInput';
 import { TYPE_VALUE_ASSOCIATION } from '../config/constants';
-import { getKeys } from '../utils/common.utils';
+import { compressImage, getKeys } from '../utils/common.utils';
 import { MachineRentals } from '../components/machine/MachineRentals';
 import { MachineRentalItem } from '../components/machine/MachineRentalItem';
+import VisuallyHiddenInput from '../components/VisuallyHiddenInput';
+import MachineRentalGrid, {
+  COLUMN_ID_RENTAL_GRID,
+} from '../components/MachineRentalGrid';
+import MachineRentedImageItem from '../components/MachineRentedImageItem';
+import {
+  notifyError,
+  notifyLoading,
+  notifySuccess,
+} from '../utils/notifications';
 
 const SingleMachine = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const auth = useAuth();
   const { id } = useParams<{ id: string }>();
-  const [machine, setMachine] = useState<null | MachineRented>(null);
-  const [initialMachine, setInitialMachine] = useState<null | MachineRented>(
-    null,
-  );
+  const [machine, setMachine] = useState<null | MachineRentedWithImage>(null);
+  const [initialMachine, setInitialMachine] =
+    useState<null | MachineRentedWithImage>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -47,18 +62,23 @@ const SingleMachine = () => {
     if (isEditing) {
       // compare initialMachine and machine
       if (initialMachine && machine) {
-        const updatedData: Record<keyof MachineRented, any> = getKeys(
+        const updatedData: Record<keyof MachineRentedWithImage, any> = getKeys(
           machine,
-        ).reduce((acc: any, key: keyof MachineRented) => {
+        ).reduce((acc: any, key: keyof MachineRentedWithImage) => {
           if (machine[key] !== initialMachine[key]) {
             acc[key] = machine[key];
           }
           return acc;
         }, {});
         if (Object.keys(updatedData).length > 0) {
+          const notif = notifyLoading(
+            'Mise à jour de la machine en cours',
+            'Machine mise à jour',
+            "Une erreur s'est produite lors de la mise à jour de la machine",
+          );
           updateMachine(id!, updatedData, auth.token)
             .then(({ eventUpdateType, ...newPartialMachine }) => {
-              toast.success('Machine mise à jour');
+              notif.success(null);
               const newMachine = { ...machine, ...newPartialMachine };
               setMachine(newMachine);
               setInitialMachine(newMachine);
@@ -66,17 +86,17 @@ const SingleMachine = () => {
               if (eventUpdateType && eventUpdateType !== 'none') {
                 switch (eventUpdateType) {
                   case 'create':
-                    toast.success(
+                    notifySuccess(
                       "Evénement d'entretien crée dans le calendrier",
                     );
                     break;
                   case 'update':
-                    toast.success(
+                    notifySuccess(
                       "Evénement d'entretien mis à jour dans le calendrier",
                     );
                     break;
                   case 'delete':
-                    toast.success(
+                    notifySuccess(
                       "Evénement d'entretien supprimé dans le calendrier",
                     );
                     break;
@@ -86,7 +106,7 @@ const SingleMachine = () => {
               }
             })
             .catch((error: Error) => {
-              toast.error(
+              notif.error(
                 `Une erreur s'est produite lors de la mise à jour de la machine: ${error}`,
               );
               console.error('Error updating machine:', error);
@@ -101,10 +121,17 @@ const SingleMachine = () => {
   const handleSelectChange = useCallback(
     (event: SelectChangeEvent<String>) => {
       const { name, value } = event.target;
-      const updatedData = { [name as keyof MachineRented]: value as unknown };
-      const newMachine = { ...machine, ...updatedData } as MachineRented;
+      const updatedData = {
+        [name as keyof MachineRentedWithImage]: value as unknown,
+      };
+      const newMachine = {
+        ...machine,
+        ...updatedData,
+      } as MachineRentedWithImage;
       if (name === 'maintenance_type') {
-        if ((value as MachineRented['maintenance_type']) === 'BY_DAY') {
+        if (
+          (value as MachineRentedWithImage['maintenance_type']) === 'BY_DAY'
+        ) {
           newMachine.nb_rental_before_maintenance = null;
         } else {
           newMachine.nb_day_before_maintenance = null;
@@ -117,9 +144,40 @@ const SingleMachine = () => {
 
   const handleChange = useCallback(
     (value: string | Date | number | null, name: string) => {
-      const updatedData = { [name as keyof MachineRented]: value };
-      const newMachine = { ...machine, ...updatedData } as MachineRented;
+      const updatedData = { [name as keyof MachineRentedWithImage]: value };
+      const newMachine = {
+        ...machine,
+        ...updatedData,
+      } as MachineRentedWithImage;
       setMachine(newMachine);
+    },
+    [machine],
+  );
+
+  const onUpdateImage = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const { files } = event.target;
+      const file = files?.[0];
+      if (file) {
+        try {
+          setLoading(true);
+          const newImage = await compressImage(file);
+          const res = await updateMachineRentedImage(id!, newImage, auth.token);
+
+          const machineUpdated: MachineRentedWithImage = {
+            ...machine!,
+            imageUrl: res.imageUrl,
+          };
+          setMachine(machineUpdated);
+          setInitialMachine(machineUpdated);
+        } catch (e) {
+          console.error('Error compressing image:', e);
+          notifyError("Erreur lors de la compression de l'image");
+          return;
+        } finally {
+          setLoading(false);
+        }
+      }
     },
     [id, machine, auth.token],
   );
@@ -135,13 +193,13 @@ const SingleMachine = () => {
           navigate('/');
         })
         .catch((error: Error) => {
-          toast.error(
+          notifyError(
             `Une erreur s'est produite lors de la suppression de la machine: ${error}`,
           );
           console.error('Error deleting machine:', error);
         });
     }
-  }, [id, navigate]);
+  }, [auth.token, id, navigate]);
 
   useEffect(() => {
     if (!id) {
@@ -150,7 +208,10 @@ const SingleMachine = () => {
     }
     const fetchData = async () => {
       try {
-        const data: MachineRented = await fetchMachineById(id, auth.token);
+        const data: MachineRentedWithImage = await fetchMachineById(
+          id,
+          auth.token,
+        );
         if (!data) {
           throw new Error('Not data found');
         }
@@ -178,7 +239,7 @@ const SingleMachine = () => {
     isEditing: boolean,
     xs?: 6 | 12 | 3,
   ) => (
-    <SingleMachineField
+    <SingleField
       label={label}
       name={name}
       value={value}
@@ -221,6 +282,51 @@ const SingleMachine = () => {
     );
   };
 
+  const handleEditEmailGuestByIndex = useCallback(
+    (newEmail: string, index: number) => {
+      setMachine((prevMachine) => {
+        if (prevMachine) {
+          const guests = [...prevMachine.guests];
+          if (index >= guests.length || index < 0) {
+            guests.push(newEmail);
+          } else {
+            guests[index] = newEmail;
+          }
+          return {
+            ...prevMachine,
+            guests,
+          };
+        }
+        return null;
+      });
+    },
+    [],
+  );
+
+  const handleRemoveEmailGuest = useCallback((emailToRemove: string) => {
+    setMachine((prevMachine) => {
+      if (prevMachine) {
+        return {
+          ...prevMachine,
+          guests: prevMachine.guests.filter((email) => email !== emailToRemove),
+        };
+      }
+      return null;
+    });
+  }, []);
+
+  const handleAddEmailGuest = useCallback(() => {
+    setMachine((prevMachine) => {
+      if (prevMachine) {
+        return {
+          ...prevMachine,
+          guests: [...prevMachine.guests, ''],
+        };
+      }
+      return null;
+    });
+  }, []);
+
   return (
     <Box sx={{ padding: 4, paddingTop: 2 }}>
       {loading && <MachineLoading />}
@@ -228,7 +334,7 @@ const SingleMachine = () => {
         <Grid item xs={6}>
           <Box display="flex" alignItems="center">
             <Typography variant="h4" gutterBottom paddingTop={1}>
-              Machine de location n°{id} - {machine?.name}
+              {machine?.name}
             </Typography>
             <IconButton onClick={switchEditing}>
               {isEditing ? <SaveIcon /> : <EditIcon />}
@@ -253,7 +359,7 @@ const SingleMachine = () => {
       </Grid>
       {machine && (
         <Grid container spacing={2}>
-          <Grid item xs={6}>
+          <Grid item xs={4}>
             <Grid item xs={12} mb={1}>
               <Box display="flex" alignItems="center">
                 <Typography variant="h6">Informations</Typography>
@@ -267,6 +373,7 @@ const SingleMachine = () => {
                 'text',
                 false,
                 isEditing,
+                12,
               )}
             </Grid>
             <Grid item xs={12} display={'flex'} gap={'10px'}>
@@ -324,55 +431,90 @@ const SingleMachine = () => {
                 12,
               )}
             </Grid>
+            <Grid item xs={12} display={'flex'}>
+              {renderField(
+                'Prix par jour',
+                'price_per_day',
+                isEditing
+                  ? machine.price_per_day
+                  : `${machine.price_per_day} €`,
+                isEditing ? 'number' : 'text',
+                false,
+                isEditing,
+                12,
+              )}
+            </Grid>
+            <SingleField
+              label="Invités"
+              name="guests"
+              value={machine.guests.join(', ')}
+              valueType="guest_email_list"
+              isEditing={isEditing}
+              xs={12}
+              handleChange={() => {}} // not used with guest_email_list
+              emails={machine.guests}
+              errorsEmails={[]}
+              touchedEmails={true}
+              lastIndexEmail={machine.guests.length - 1}
+              handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
+              handleAddEmailGuest={handleAddEmailGuest}
+              handleRemoveEmailGuest={handleRemoveEmailGuest}
+            />
+            <Grid item xs={12} display={'flex'}>
+              <ImageList variant="masonry" cols={1} gap={8}>
+                <MachineRentedImageItem
+                  item={machine}
+                  onClick={null}
+                  showItemBar={false}
+                >
+                  {isEditing ? (
+                    <IconButton
+                      component={'label'}
+                      color={'default'}
+                      sx={{
+                        position: 'absolute',
+                        bottom: 5,
+                        right: 5,
+                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 1)',
+                        },
+                      }}
+                    >
+                      <EditIcon />
+                      <VisuallyHiddenInput
+                        accept={'image/*'}
+                        type="file"
+                        onChange={onUpdateImage}
+                      />
+                    </IconButton>
+                  ) : undefined}
+                </MachineRentedImageItem>
+              </ImageList>
+            </Grid>
           </Grid>
-          <MachineRentals
-            editing={isEditing}
-            onAddRental={() => {
-              const newRental = {
-                rentalDate: new Date(),
-                returnDate: null,
-              };
-              const updatedMachine = {
-                ...machine,
-                machineRentals: [...machine.machineRentals, newRental],
-              };
-              setMachine(updatedMachine as MachineRented);
-            }}
-            machine={machine}
-            renderMachineRentalItem={(rental, index) => (
-              <MachineRentalItem
-                key={index}
-                editing={isEditing}
-                rental={rental}
-                onChangeRentalDate={(date) => {
-                  const updatedRentals = [...machine.machineRentals];
-                  updatedRentals[index].rentalDate =
-                    date?.toDate() ?? new Date();
-                  setMachine({
-                    ...machine,
-                    machineRentals: updatedRentals,
-                  } as MachineRented);
-                }}
-                onChangeReturnDate={(date) => {
-                  const updatedRentals = [...machine.machineRentals];
-                  updatedRentals[index].returnDate = date?.toDate() ?? null;
-                  setMachine({
-                    ...machine,
-                    machineRentals: updatedRentals,
-                  } as MachineRented);
-                }}
-                onDelete={() => {
-                  const updatedRentals = machine.machineRentals.filter(
-                    (_, rentalIndex) => rentalIndex !== index,
-                  );
-                  setMachine({
-                    ...machine,
-                    machineRentals: updatedRentals,
-                  } as MachineRented);
-                }}
-              />
-            )}
-          />
+          <Grid item xs={8} maxHeight={'75vh'}>
+            <Grid item xs={12} mb={1}>
+              <Box display="flex" alignItems="center">
+                <Typography variant="h6">Locations</Typography>
+              </Box>
+            </Grid>
+            <MachineRentalGrid
+              rowData={
+                loading
+                  ? []
+                  : (machine.machineRentals as MachineRentalWithMachineRented[])
+              }
+              loading={loading}
+              columnsToShow={[
+                COLUMN_ID_RENTAL_GRID.ID,
+                COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME,
+                COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME,
+                COLUMN_ID_RENTAL_GRID.RENTAL_DATE,
+                COLUMN_ID_RENTAL_GRID.RETURN_DATE,
+              ]}
+            />
+          </Grid>
         </Grid>
       )}
     </Box>

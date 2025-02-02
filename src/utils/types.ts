@@ -1,11 +1,27 @@
 export interface MachineRental {
   id: string;
   machineRentedId: string;
-  rentalDate: Date;
+  rentalDate: Date | null;
   returnDate: Date | null;
+  clientFirstName: string;
+  clientLastName: string;
+  clientEmail: string;
+  clientPhone: string;
+  clientAddress: string;
+  clientPostal: string;
+  clientCity: string;
+  paid: boolean;
+  guests: string[];
 }
 
-export type MachineRentalCreated = Omit<MachineRental, 'id'>;
+export interface MachineRentalWithMachineRented extends MachineRental {
+  machineRented: MachineRentedWithoutRental;
+}
+
+export type MachineRentalToCreate = Omit<
+  MachineRental,
+  'id' | 'machineRentedId' | 'paid'
+>;
 
 export interface MachineRented {
   id: string;
@@ -16,6 +32,14 @@ export interface MachineRented {
   last_maintenance_date: Date | null;
   next_maintenance: Date | null;
   machineRentals: MachineRental[];
+  price_per_day: number;
+  guests: string[];
+}
+
+export type MachineRentedWithoutRental = Omit<MachineRented, 'machineRentals'>;
+
+export interface MachineRentedWithImage extends MachineRented {
+  imageUrl: string;
 }
 
 export type MachineRentedCreated = Omit<
