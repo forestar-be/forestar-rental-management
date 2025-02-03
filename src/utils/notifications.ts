@@ -200,8 +200,8 @@ class NotifyLoading {
  */
 export const notifyLoading = (
   loadingMessage: string,
-  successMessage: ToastContent,
-  errorMessage: ToastContent,
+  successMessage: ToastContent = null,
+  errorMessage: ToastContent = null,
 ): NotifyLoading =>
   new NotifyLoading(loadingMessage, successMessage, errorMessage);
 

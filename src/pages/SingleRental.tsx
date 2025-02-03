@@ -39,18 +39,22 @@ const SingleRental = () => {
     useState<null | MachineRentalWithMachineRented>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [notificationUpdating, setNotificationUpdating] =
+    useState<null | ReturnType<typeof notifyLoading>>(null);
 
   const updateRentalData = useCallback(
     (updatedData: Partial<MachineRental>) => {
       if (rental && Object.keys(updatedData).length > 0) {
-        const notif = notifyLoading(
+        notificationUpdating?.end();
+        const newNotificationUpdating = notifyLoading(
           'Mise à jour de la location en cours',
           'Location mise à jour',
           "Une erreur s'est produite lors de la mise à jour de la location",
         );
+        setNotificationUpdating(newNotificationUpdating);
         updateMachineRental(id!, updatedData, auth.token)
           .then((updatedRental: MachineRental) => {
-            notif.success(null);
+            newNotificationUpdating.success(null);
             const newRental = {
               ...updatedRental,
               machineRented: rental.machineRented,
@@ -59,14 +63,14 @@ const SingleRental = () => {
             setInitialRental(newRental);
           })
           .catch((error: Error) => {
-            notif.error(
+            newNotificationUpdating.error(
               `Une erreur s'est produite lors de la mise à jour de la location : ${error.message}`,
             );
             console.error('Erreur lors de la mise à jour :', error);
           });
       }
     },
-    [id, auth.token, rental],
+    [notificationUpdating, rental, id, auth.token],
   );
 
   const switchEditing = useCallback(() => {

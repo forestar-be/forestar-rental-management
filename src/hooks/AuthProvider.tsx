@@ -73,7 +73,6 @@ const AuthProvider = ({ children }: any) => {
       localStorage.setItem('token', String(res.token));
       localStorage.setItem('expires_at', String(res.expiresAt));
       localStorage.setItem('is_admin', String(res.isAdmin));
-      navigate('/');
       return { success: true, message: 'Vous êtes connecté' };
     }
     return {
