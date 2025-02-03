@@ -57,6 +57,8 @@ const SingleMachine = () => {
     useState<null | MachineRentedWithImage>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [notificationUpdating, setNotificationUpdating] =
+    useState<null | ReturnType<typeof notifyLoading>>(null);
 
   const switchEditing = useCallback(() => {
     if (isEditing) {
@@ -71,11 +73,14 @@ const SingleMachine = () => {
           return acc;
         }, {});
         if (Object.keys(updatedData).length > 0) {
+          notificationUpdating?.end();
           const notif = notifyLoading(
             'Mise à jour de la machine en cours',
             'Machine mise à jour',
             "Une erreur s'est produite lors de la mise à jour de la machine",
           );
+          setNotificationUpdating(notif);
+
           updateMachine(id!, updatedData, auth.token)
             .then(({ eventUpdateType, ...newPartialMachine }) => {
               notif.success(null);
