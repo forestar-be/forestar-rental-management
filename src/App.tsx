@@ -19,6 +19,7 @@ import MachineRentalTable from './pages/MachineRentalTable';
 import SingleRental from './pages/SingleRental';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { GlobalDataProvider } from './contexts/GlobalDataContext';
 
 const defaultTheme = 'light';
 
@@ -57,31 +58,39 @@ const App = (): JSX.Element => {
           <CssBaseline />
           <BrowserRouter>
             <AuthProvider>
-              <LocalizationProvider
-                dateAdapter={AdapterDayjs}
-                adapterLocale={'fr'}
-              >
-                <Layout>
-                  <ToastContainer />
-                  <Routes>
-                    <Route path="/login" element={<Login />} />
-                    <Route element={<AuthRoute />}>
-                      <Route path="/" element={<Home />} />
-                      <Route
-                        path="/machines"
-                        element={<MachineRentedTable />}
-                      />
-                      <Route path="/machines/:id" element={<SingleMachine />} />
-                      <Route
-                        path="/locations"
-                        element={<MachineRentalTable />}
-                      />
-                      <Route path="/locations/:id" element={<SingleRental />} />
-                    </Route>
-                    <Route path="*" element={<NotFoundPage />} />
-                  </Routes>
-                </Layout>
-              </LocalizationProvider>
+              <GlobalDataProvider>
+                <LocalizationProvider
+                  dateAdapter={AdapterDayjs}
+                  adapterLocale={'fr'}
+                >
+                  <Layout>
+                    <ToastContainer />
+                    <Routes>
+                      <Route path="/login" element={<Login />} />
+                      <Route element={<AuthRoute />}>
+                        <Route path="/" element={<Home />} />
+                        <Route
+                          path="/machines"
+                          element={<MachineRentedTable />}
+                        />
+                        <Route
+                          path="/machines/:id"
+                          element={<SingleMachine />}
+                        />
+                        <Route
+                          path="/locations"
+                          element={<MachineRentalTable />}
+                        />
+                        <Route
+                          path="/locations/:id"
+                          element={<SingleRental />}
+                        />
+                      </Route>
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                  </Layout>
+                </LocalizationProvider>
+              </GlobalDataProvider>
             </AuthProvider>
           </BrowserRouter>
         </ThemeProvider>
