@@ -173,3 +173,7 @@ export const updateMachineRental = async (
   );
   return response as MachineRental;
 };
+
+export async function getKnownEmails(token: string): Promise<string[]> {
+  return await apiRequest('/rental-mngt/known-emails', 'GET', token);
+}

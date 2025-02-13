@@ -1,9 +1,19 @@
-import { Box, Button, IconButton, TextField } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
-import React from 'react';
+import React, { FC } from 'react';
+import { Autocomplete, TextField, Box, Button } from '@mui/material';
+import { useGlobalData } from '../contexts/GlobalDataContext';
 
-const EditEmailsGuestFields = ({
+interface EditEmailsGuestFieldsProps {
+  values: string[];
+  errors: string | string[] | undefined;
+  touched: boolean | undefined;
+  lastIndex: number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onClickAddGuest: () => void;
+  handleEditGuestByIndex: (value: string, index: number) => void;
+  handleRemoveGuest: (guest: string) => void;
+}
+
+const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
   values,
   errors,
   touched,
@@ -12,69 +22,71 @@ const EditEmailsGuestFields = ({
   onClickAddGuest,
   handleEditGuestByIndex,
   handleRemoveGuest,
-}: {
-  values: string[];
-  errors: string | string[] | undefined;
-  touched: boolean | undefined;
-  lastIndex: number;
-  onChange: (e: any) => void;
-  onClickAddGuest: () => void;
-  handleEditGuestByIndex: (value: string, index: number) => void;
-  handleRemoveGuest: (guest: string) => void;
-}) => (
-  <Box sx={{ gridColumn: { md: 'span 2' } }}>
-    <TextField
-      margin="dense"
-      name="guestEmail"
-      label="Email des invités"
-      type="email"
-      fullWidth
-      value={values[lastIndex] || ''}
-      onChange={onChange}
-      error={Boolean(touched && errors && errors[lastIndex])}
-      helperText={touched && errors && errors[lastIndex]}
-    />
-    <Button
-      variant="contained"
-      color="primary"
-      onClick={onClickAddGuest}
-      startIcon={<AddIcon />}
-      sx={{ mt: 1 }}
-    >
-      Ajouter un invité
-    </Button>
-    <Box sx={{ mt: 2 }}>
-      {values.map(
-        (guest, index) =>
-          index !== lastIndex && (
-            <Box
-              key={index}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                mb: 1,
-              }}
+}) => {
+  const { knownEmails } = useGlobalData();
+
+  return (
+    <Box>
+      <Autocomplete
+        options={knownEmails || []}
+        freeSolo
+        clearOnBlur={false}
+        filterOptions={(options, state) =>
+          options.filter((option) =>
+            option
+              .toLowerCase()
+              .includes(String(values[lastIndex]).toLowerCase()),
+          )
+        }
+        value={values[lastIndex] || ''}
+        inputValue={values[lastIndex] || ''}
+        onInputChange={(_event, newInputValue, reason) => {
+          if (reason === 'input') {
+            handleEditGuestByIndex(newInputValue, lastIndex);
+          }
+        }}
+        onChange={(_event, newValue) => {
+          if (typeof newValue === 'string') {
+            handleEditGuestByIndex(newValue, lastIndex);
+          }
+        }}
+        renderInput={(params) => (
+          <TextField {...params} label="Ajouter un invité" margin="dense" />
+        )}
+      />
+
+      {values.map((email, index) => {
+        if (index === lastIndex) return null;
+        return (
+          <Box
+            key={index}
+            sx={{ display: 'flex', alignItems: 'center', mt: 1 }}
+          >
+            <TextField
+              fullWidth
+              margin="dense"
+              label={`Email de l'invité ${index + 1}`}
+              value={email}
+              onChange={(e) => handleEditGuestByIndex(e.target.value, index)}
+              error={touched && Boolean(errors)}
+              helperText={touched && errors ? String(errors) : ''}
+            />
+            <Button
+              onClick={() => handleRemoveGuest(email)}
+              color="secondary"
+              sx={{ ml: 1 }}
             >
-              <TextField
-                margin="dense"
-                value={guest}
-                fullWidth
-                onChange={(e) => handleEditGuestByIndex(e.target.value, index)}
-                error={Boolean(touched && errors && errors[index])}
-                helperText={touched && errors && errors[index]}
-              />
-              <IconButton
-                color="secondary"
-                onClick={() => handleRemoveGuest(guest)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Box>
-          ),
-      )}
+              Supprimer
+            </Button>
+          </Box>
+        );
+      })}
+
+      <Button onClick={onClickAddGuest} variant="outlined" sx={{ mt: 2 }}>
+        Ajouter un invité
+      </Button>
     </Box>
-  </Box>
-);
+  );
+};
 
 export default EditEmailsGuestFields;
