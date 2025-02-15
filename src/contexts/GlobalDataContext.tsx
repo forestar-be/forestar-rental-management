@@ -5,24 +5,30 @@ import React, {
   useReducer,
   ReactNode,
 } from 'react';
-import { getKnownEmails } from '../utils/api';
+import { getKnownEmails, getAllMachineRented } from '../utils/api';
 import { useAuth } from '../hooks/AuthProvider';
 import { notifyError } from '../utils/notifications';
+import { MachineRentedWithImage } from '../utils/types';
 
 // Define action types
 type Action =
   | { type: 'SET_EMAILS'; payload: string[] }
-  | { type: 'CLEAR_EMAILS' };
+  | { type: 'CLEAR_EMAILS' }
+  | { type: 'SET_MACHINE_RENTED_LIST'; payload: MachineRentedWithImage[] }
+  | { type: 'SET_LOADING_MACHINE_RENTED_LIST'; payload: boolean };
 
 // The state type
 interface GlobalDataState {
   knownEmails: string[];
-  // Future additional data properties...
+  machineRentedList: MachineRentedWithImage[];
+  loadingMachineRentedList: boolean;
 }
 
 // Create initial state
 const initialState: GlobalDataState = {
   knownEmails: [],
+  machineRentedList: [],
+  loadingMachineRentedList: false,
 };
 
 // Reducer function to handle actions
@@ -35,6 +41,10 @@ const globalDataReducer = (
       return { ...state, knownEmails: action.payload };
     case 'CLEAR_EMAILS':
       return { ...state, knownEmails: [] };
+    case 'SET_MACHINE_RENTED_LIST':
+      return { ...state, machineRentedList: action.payload };
+    case 'SET_LOADING_MACHINE_RENTED_LIST':
+      return { ...state, loadingMachineRentedList: action.payload };
     default:
       return state;
   }
@@ -42,12 +52,13 @@ const globalDataReducer = (
 
 interface GlobalDataContextType extends GlobalDataState {
   refreshKnownEmails: () => void;
-  // Future actions and selectors can be added here
+  refreshMachineRentedList: () => void;
 }
 
 const GlobalDataContext = createContext<GlobalDataContextType>({
   ...initialState,
   refreshKnownEmails: () => {},
+  refreshMachineRentedList: () => {},
 });
 
 export const GlobalDataProvider = ({
@@ -58,7 +69,7 @@ export const GlobalDataProvider = ({
   const { token } = useAuth();
   const [state, dispatch] = useReducer(globalDataReducer, initialState);
 
-  const fetchKnownEmails = async () => {
+  const refreshKnownEmails = async () => {
     if (token) {
       try {
         const emails = await getKnownEmails(token);
@@ -70,15 +81,37 @@ export const GlobalDataProvider = ({
     }
   };
 
+  const refreshMachineRentedList = async () => {
+    if (token) {
+      dispatch({ type: 'SET_LOADING_MACHINE_RENTED_LIST', payload: true });
+      try {
+        const machines = await getAllMachineRented(token, true);
+        dispatch({ type: 'SET_MACHINE_RENTED_LIST', payload: machines });
+      } catch (error) {
+        notifyError('Erreur lors de la récupération des machines louées');
+        console.error('Error fetching machine rented list: ', error);
+      } finally {
+        dispatch({ type: 'SET_LOADING_MACHINE_RENTED_LIST', payload: false });
+      }
+    }
+  };
+
   useEffect(() => {
-    fetchKnownEmails();
+    refreshKnownEmails();
+  }, [token]);
+
+  useEffect(() => {
+    refreshMachineRentedList();
   }, [token]);
 
   return (
     <GlobalDataContext.Provider
       value={{
         knownEmails: state.knownEmails,
-        refreshKnownEmails: fetchKnownEmails,
+        machineRentedList: state.machineRentedList,
+        loadingMachineRentedList: state.loadingMachineRentedList,
+        refreshKnownEmails,
+        refreshMachineRentedList,
       }}
     >
       {children}

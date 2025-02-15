@@ -141,7 +141,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                 }}
               />
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <IconButton
+                {/* <IconButton
                   component="a"
                   href={`/parametres`}
                   onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -154,7 +154,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   <Tooltip title="Paramètres">
                     <SettingsIcon fontSize="medium" />
                   </Tooltip>
-                </IconButton>
+                </IconButton> */}
                 <IconButton
                   onClick={auth.logOut}
                   aria-label="Déconnexion"

@@ -1,16 +1,24 @@
 import '../styles/Home.css';
 import { MachineRentalToCreate, MachineRentedWithImage } from '../utils/types';
-import { createMachineRental, getAllMachineRented } from '../utils/api';
-import React, { useEffect, useState } from 'react';
+import { createMachineRental } from '../utils/api';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../hooks/AuthProvider';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
-import { Box, CircularProgress, ImageList, Typography } from '@mui/material';
+import {
+  Box,
+  CircularProgress,
+  ImageList,
+  Typography,
+  TextField,
+} from '@mui/material';
 import { toast } from 'react-toastify';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import CreateRentalDialog from '../components/CreateRentalDialog';
 import MachineRentedImageItem from '../components/MachineRentedImageItem';
+import { useGlobalData } from '../contexts/GlobalDataContext';
+import SearchIcon from '@mui/icons-material/Search';
 
 const phoneRegex =
   /^(\+?[1-9]\d{0,2}[-.\s]?)?(0?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}(?:[-.\s]?\d{1,9})?)$/;
@@ -53,36 +61,13 @@ const Home = (): JSX.Element => {
   const auth = useAuth();
   const theme = useTheme();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { machineRentedList, loadingMachineRentedList: loading } =
+    useGlobalData();
   const [loadingCreate, setLoadingCreate] = useState(false);
-  const [machineRentedList, setMachineRentedList] = useState<
-    MachineRentedWithImage[]
-  >([]);
   const [open, setOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] =
     useState<MachineRentedWithImage | null>(null);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const data: MachineRentedWithImage[] = await getAllMachineRented(
-        auth.token,
-        true,
-      );
-      setMachineRentedList(data);
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error(
-        "Une erreur s'est produite lors de la récupération des données",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [filterText, setFilterText] = useState<string>('');
 
   const handleClickOpen = (machine: MachineRentedWithImage) => {
     setSelectedMachine(machine);
@@ -116,7 +101,7 @@ const Home = (): JSX.Element => {
           throw new Error('Invalid dates');
         }
         setLoadingCreate(true);
-        // Call API to create a new MachineRental
+        // Appel à l'API pour créer une machine louée
         await createMachineRental(selectedMachine.id, values, auth.token);
         toast.success('Machine rental created successfully');
         handleClose();
@@ -131,11 +116,36 @@ const Home = (): JSX.Element => {
     },
   });
 
+  // Filter the machine rented list based on the filterText and item.name using useMemo
+  const filteredMachines = useMemo(() => {
+    return machineRentedList.filter((item) =>
+      item.name.toLowerCase().includes(filterText.toLowerCase()),
+    );
+  }, [machineRentedList, filterText]);
+
   return (
     <div id="home">
-      <Typography variant="h6" gutterBottom paddingTop={1}>
-        Ajout d'une location
-      </Typography>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ paddingTop: 1, marginBottom: 2 }}
+      >
+        <Typography variant="h6">Ajout d'une location</Typography>
+        <TextField
+          label="Rechercher une machine"
+          variant="outlined"
+          value={filterText}
+          size="small"
+          sx={{ minWidth: 450 }}
+          onChange={(e) => setFilterText(e.target.value)}
+          slotProps={{
+            input: {
+              endAdornment: <SearchIcon />,
+            },
+          }}
+        />
+      </Box>
       {loading ? (
         <Box
           display="flex"
@@ -146,8 +156,8 @@ const Home = (): JSX.Element => {
           <CircularProgress size={48} color="primary" />
         </Box>
       ) : (
-        <ImageList rowHeight={300} variant="masonry" cols={3} gap={8}>
-          {machineRentedList.map((item) => (
+        <ImageList rowHeight={250} variant="quilted" cols={6} gap={8}>
+          {filteredMachines.map((item) => (
             <MachineRentedImageItem
               key={item.id}
               item={item}
