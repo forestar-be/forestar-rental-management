@@ -27,10 +27,11 @@ export const MachineSelect = (props: {
   colorByValue: { [p: string]: string };
   renderValue?: (value: string) => string;
   required?: boolean;
+  size?: 'small' | 'medium';
 }) => (
   <Grid item xs={props.xs}>
     {props.isEditing ? (
-      <FormControl sx={props.sx}>
+      <FormControl sx={props.sx} size={props.size}>
         <InputLabel id={`multiple-chip-label-${props.name}`}>
           {props.label}
         </InputLabel>

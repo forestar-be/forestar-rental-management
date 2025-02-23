@@ -38,7 +38,6 @@ const MachineRentedTable: React.FC = () => {
     maintenance_type: 'BY_DAY',
     nb_day_before_maintenance: 0,
     nb_rental_before_maintenance: null,
-    last_maintenance_date: null,
     price_per_day: 0,
     guests: [],
   });
@@ -77,7 +76,6 @@ const MachineRentedTable: React.FC = () => {
         maintenance_type: 'BY_DAY',
         nb_day_before_maintenance: 0,
         nb_rental_before_maintenance: null,
-        last_maintenance_date: null,
         price_per_day: 0,
         guests: [],
       });

@@ -177,3 +177,47 @@ export const updateMachineRental = async (
 export async function getKnownEmails(token: string): Promise<string[]> {
   return await apiRequest('/rental-mngt/known-emails', 'GET', token);
 }
+
+export const getAvailableParts = async (
+  token: string,
+): Promise<{ parts: string[] }> => {
+  return await apiRequest('/rental-mngt/machine-rented/parts', 'GET', token);
+};
+
+// New API functions for Maintenance History
+export const getMaintenanceHistories = async (
+  machineId: string,
+  token: string,
+): Promise<any[]> => {
+  const response = await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/maintenance`,
+    'GET',
+    token,
+  );
+  return response;
+};
+
+export const addMaintenanceHistory = async (
+  machineId: string,
+  notes: string,
+  token: string,
+): Promise<any> => {
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/maintenance`,
+    'POST',
+    token,
+    { notes },
+  );
+};
+
+export const deleteMaintenanceHistory = async (
+  machineId: string,
+  maintenanceId: string,
+  token: string,
+): Promise<any> => {
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/maintenance/${maintenanceId}`,
+    'DELETE',
+    token,
+  );
+};
