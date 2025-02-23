@@ -1,4 +1,4 @@
-import { MachineRentalToCreate } from '../utils/types';
+import { MachineRentalToCreate, MachineRentedWithImage } from '../utils/types';
 import {
   FieldConfig,
   FieldHelperProps,
@@ -18,17 +18,20 @@ import {
   DialogContent,
   DialogTitle,
   TextField,
+  Typography,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import EditEmailsGuestFields from './EditEmailsGuestFields';
+import { formatPriceNumberToFrenchFormatStr } from '../utils/common.utils';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const CreateRentalDialog = (props: {
+  selectedMachine: MachineRentedWithImage | null;
   open: boolean;
   onClose: () => void;
   loadingCreate: boolean;
@@ -162,8 +165,17 @@ const CreateRentalDialog = (props: {
 
   return (
     <Dialog open={props.open} onClose={props.onClose} fullWidth maxWidth="lg">
-      <DialogTitle>Créer une nouvelle location</DialogTitle>
+      <DialogTitle>
+        Créer une nouvelle location pour la machine{' '}
+        {props.selectedMachine?.name}
+      </DialogTitle>
       <DialogContent>
+        {props.selectedMachine && (
+          <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
+            Dépôt de garantie :{' '}
+            {formatPriceNumberToFrenchFormatStr(props.selectedMachine.deposit)}
+          </Typography>
+        )}
         {props.loadingCreate && (
           <Box
             sx={{

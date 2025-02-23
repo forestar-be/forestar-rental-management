@@ -23,3 +23,10 @@ export async function compressImage(file: File) {
     type: 'image/webp',
   });
 }
+
+export const formatPriceNumberToFrenchFormatStr = (number: number) => {
+  return number.toLocaleString('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+  });
+};

@@ -161,6 +161,7 @@ const Home = (): JSX.Element => {
         </ImageList>
       )}
       <CreateRentalDialog
+        selectedMachine={selectedMachine}
         open={open}
         onClose={handleClose}
         loadingCreate={loadingCreate}
