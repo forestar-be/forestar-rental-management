@@ -40,6 +40,7 @@ const MachineRentedTable: React.FC = () => {
     nb_rental_before_maintenance: null,
     price_per_day: 0,
     guests: [],
+    deposit: 0,
   });
 
   const fetchData = async () => {
@@ -78,6 +79,7 @@ const MachineRentedTable: React.FC = () => {
         nb_rental_before_maintenance: null,
         price_per_day: 0,
         guests: [],
+        deposit: 0,
       });
     } catch (error) {
       console.error("Erreur lors de l'ajout :", error);

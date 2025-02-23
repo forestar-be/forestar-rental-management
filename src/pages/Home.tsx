@@ -97,7 +97,7 @@ const Home = (): JSX.Element => {
         setLoadingCreate(true);
         // Appel à l'API pour créer une machine louée
         await createMachineRental(selectedMachine.id, values, auth.token);
-        toast.success('Machine rental created successfully');
+        toast.success('Location de la machine créée avec succès');
         handleClose();
       } catch (error) {
         console.error('Failed to create machine rental:', error);

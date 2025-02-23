@@ -9,6 +9,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  InputAdornment,
   MenuItem,
   TextField,
 } from '@mui/material';
@@ -58,6 +59,7 @@ const validationSchema = yup.object({
     .min(1, 'Prix par jour doit être supérieur à 0'),
   guests: yup.array().of(yup.string().email('Email invalide')),
   image: yup.mixed().required('Image de la machine est requise'),
+  deposit: yup.number().required('Caution est requise'),
 });
 
 const CreateMachineDialog = (props: {
@@ -234,6 +236,31 @@ const CreateMachineDialog = (props: {
               helperText={
                 formik.touched.price_per_day && formik.errors.price_per_day
               }
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end" sx={{ paddingLeft: 1 }}>
+                    €
+                  </InputAdornment>
+                ),
+              }}
+              fullWidth
+            />
+            <TextField
+              label="Caution"
+              name="deposit"
+              type="number"
+              value={formik.values.deposit}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              error={formik.touched.deposit && Boolean(formik.errors.deposit)}
+              helperText={formik.touched.deposit && formik.errors.deposit}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end" sx={{ paddingLeft: 1 }}>
+                    €
+                  </InputAdornment>
+                ),
+              }}
               fullWidth
             />
             <MuiFileInput
