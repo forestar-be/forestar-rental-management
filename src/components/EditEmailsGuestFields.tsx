@@ -11,6 +11,7 @@ interface EditEmailsGuestFieldsProps {
   onClickAddGuest: () => void;
   handleEditGuestByIndex: (value: string, index: number) => void;
   handleRemoveGuest: (guest: string) => void;
+  size?: 'small' | 'medium';
 }
 
 const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
@@ -22,6 +23,7 @@ const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
   onClickAddGuest,
   handleEditGuestByIndex,
   handleRemoveGuest,
+  size,
 }) => {
   const { knownEmails } = useGlobalData();
 
@@ -51,7 +53,7 @@ const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
           }
         }}
         renderInput={(params) => (
-          <TextField {...params} label="Ajouter un invité" margin="dense" />
+          <TextField {...params} label="Ajouter un invité" size={size} />
         )}
       />
 
@@ -70,11 +72,13 @@ const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
               onChange={(e) => handleEditGuestByIndex(e.target.value, index)}
               error={touched && Boolean(errors)}
               helperText={touched && errors ? String(errors) : ''}
+              size={size}
             />
             <Button
               onClick={() => handleRemoveGuest(email)}
               color="secondary"
               sx={{ ml: 1 }}
+              size={size}
             >
               Supprimer
             </Button>
@@ -82,7 +86,12 @@ const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
         );
       })}
 
-      <Button onClick={onClickAddGuest} variant="outlined" sx={{ mt: 2 }}>
+      <Button
+        onClick={onClickAddGuest}
+        variant="outlined"
+        sx={{ mt: size === 'small' ? 1 : 2 }}
+        size={size}
+      >
         Ajouter un invité
       </Button>
     </Box>

@@ -18,7 +18,6 @@ import InsertPhotoIcon from '@mui/icons-material/InsertPhoto';
 import CloseIcon from '@mui/icons-material/Close';
 import { MachineSelect } from './machine/MachineSelect';
 import { TYPE_VALUE_ASSOCIATION } from '../config/constants';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -53,10 +52,6 @@ const validationSchema = yup.object({
         ? schema.required('Nb locations avant maintenance est requis')
         : schema,
     ),
-  last_maintenance_date: yup
-    .date()
-    .nullable()
-    .required('Dernière maintenance est requise'),
   price_per_day: yup
     .number()
     .required('Prix par jour est requis')
@@ -225,33 +220,6 @@ const CreateMachineDialog = (props: {
                 fullWidth
               />
             )}
-            <DatePicker
-              timezone={'Europe/Paris'}
-              label="Dernière maintenance"
-              name="last_maintenance_date"
-              format={'DD/MM/YYYY'}
-              value={
-                formik.values.last_maintenance_date
-                  ? dayjs(formik.values.last_maintenance_date)
-                  : null
-              }
-              onChange={(date) =>
-                formik.setFieldValue(
-                  'last_maintenance_date',
-                  date?.toDate() ?? null,
-                )
-              }
-              slotProps={{
-                textField: {
-                  error:
-                    formik.touched.last_maintenance_date &&
-                    Boolean(formik.errors.last_maintenance_date),
-                  helperText:
-                    formik.touched.last_maintenance_date &&
-                    formik.errors.last_maintenance_date,
-                },
-              }}
-            />
             <TextField
               label="Prix par jour"
               name="price_per_day"

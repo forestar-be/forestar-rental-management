@@ -32,16 +32,10 @@ const validationSchema = yup.object({
     .string()
     .matches(phoneRegex, 'Numéro de téléphone invalide')
     .required('Téléphone est requis'),
-  clientEmail: yup
-    .string()
-    .email('Email invalide')
-    .required('Email est requis'),
-  clientAddress: yup.string().required('Adresse est requise'),
-  clientCity: yup.string().required('Ville est requise'),
-  clientPostal: yup
-    .string()
-    .matches(postalRegex, 'Code postal invalide')
-    .required('Code postal est requis'),
+  clientEmail: yup.string().email('Email invalide'),
+  clientAddress: yup.string(),
+  clientCity: yup.string(),
+  clientPostal: yup.string().matches(postalRegex, 'Code postal invalide'),
   rentalDate: yup
     .date()
     .required('Date de location est requise')

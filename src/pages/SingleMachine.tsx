@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { cloneDeep } from 'lodash';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
@@ -6,11 +7,16 @@ import {
   Grid,
   IconButton,
   ImageList,
-  ImageListItem,
   MenuItem,
   SxProps,
   Theme,
   Typography,
+  Tabs,
+  Tab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
@@ -20,6 +26,7 @@ import { MachineLoading } from '../components/machine/MachineLoading';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {
   MachineRentalWithMachineRented,
+  MachineRentedPart,
   MachineRentedWithImage,
 } from '../utils/types';
 import { Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
@@ -28,14 +35,12 @@ import {
   fetchMachineById,
   updateMachine,
   updateMachineRentedImage,
+  addMaintenanceHistory,
 } from '../utils/api';
-import { toast } from 'react-toastify';
 import { MachineSelect } from '../components/machine/MachineSelect';
 import { SelectChangeEvent } from '@mui/material/Select/SelectInput';
 import { TYPE_VALUE_ASSOCIATION } from '../config/constants';
 import { compressImage, getKeys } from '../utils/common.utils';
-import { MachineRentals } from '../components/machine/MachineRentals';
-import { MachineRentalItem } from '../components/machine/MachineRentalItem';
 import VisuallyHiddenInput from '../components/VisuallyHiddenInput';
 import MachineRentalGrid, {
   COLUMN_ID_RENTAL_GRID,
@@ -46,9 +51,13 @@ import {
   notifyLoading,
   notifySuccess,
 } from '../utils/notifications';
+import MachineParts from '../components/machine/MachineParts';
+import { Add as AddIcon } from '@mui/icons-material';
+import { getAvailableParts } from '../utils/api';
+import MaintenanceDialog from '../components/MaintenanceDialog';
+import MaintenanceHistory from '../components/MaintenanceHistory';
 
 const SingleMachine = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const auth = useAuth();
   const { id } = useParams<{ id: string }>();
@@ -60,68 +69,113 @@ const SingleMachine = () => {
   const [notificationUpdating, setNotificationUpdating] =
     useState<null | ReturnType<typeof notifyLoading>>(null);
 
-  const switchEditing = useCallback(() => {
-    if (isEditing) {
-      // compare initialMachine and machine
-      if (initialMachine && machine) {
-        const updatedData: Record<keyof MachineRentedWithImage, any> = getKeys(
-          machine,
-        ).reduce((acc: any, key: keyof MachineRentedWithImage) => {
-          if (machine[key] !== initialMachine[key]) {
-            acc[key] = machine[key];
-          }
-          return acc;
-        }, {});
-        if (Object.keys(updatedData).length > 0) {
-          notificationUpdating?.end();
-          const notif = notifyLoading(
-            'Mise à jour de la machine en cours',
-            'Machine mise à jour',
-            "Une erreur s'est produite lors de la mise à jour de la machine",
-          );
-          setNotificationUpdating(notif);
+  const [tabValue, setTabValue] = useState<number>(0);
 
-          updateMachine(id!, updatedData, auth.token)
-            .then(({ eventUpdateType, ...newPartialMachine }) => {
-              notif.success(null);
-              const newMachine = { ...machine, ...newPartialMachine };
-              setMachine(newMachine);
-              setInitialMachine(newMachine);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [maintenanceDate, setMaintenanceDate] = useState<Date | null>(null);
+  const [maintenanceComment, setMaintenanceComment] = useState('');
 
-              if (eventUpdateType && eventUpdateType !== 'none') {
-                switch (eventUpdateType) {
-                  case 'create':
-                    notifySuccess(
-                      "Evénement d'entretien crée dans le calendrier",
-                    );
-                    break;
-                  case 'update':
-                    notifySuccess(
-                      "Evénement d'entretien mis à jour dans le calendrier",
-                    );
-                    break;
-                  case 'delete':
-                    notifySuccess(
-                      "Evénement d'entretien supprimé dans le calendrier",
-                    );
-                    break;
-                  default:
-                    break;
-                }
-              }
-            })
-            .catch((error: Error) => {
-              notif.error(
-                `Une erreur s'est produite lors de la mise à jour de la machine: ${error}`,
-              );
-              console.error('Error updating machine:', error);
-            });
-        }
-      }
+  const [availableParts, setAvailableParts] = useState<string[]>([]);
+
+  const switchEditing = useCallback(async () => {
+    if (!isEditing) {
+      setTabValue(1); // Switch to 'Entretiens & Pièces' tab when editing starts
     }
+    if (isEditing && initialMachine && machine) {
+      // Préparer les mises à jour de la machine
+      const updatedData: Record<keyof MachineRentedWithImage, any> = getKeys(
+        machine,
+      ).reduce((acc: any, key: keyof MachineRentedWithImage) => {
+        if (key === 'last_maintenance_date' || key === 'next_maintenance')
+          return acc;
 
+        const isDifferent = (obj1: any, obj2: any): boolean => {
+          if (typeof obj1 !== typeof obj2) return true;
+          if (typeof obj1 !== 'object' || obj1 === null || obj2 === null) {
+            return String(obj1) !== String(obj2);
+          }
+          if (Array.isArray(obj1) && Array.isArray(obj2)) {
+            if (obj1.length !== obj2.length) return true;
+            for (let i = 0; i < obj1.length; i++) {
+              if (isDifferent(obj1[i], obj2[i])) return true;
+            }
+            return false;
+          }
+          const keys1 = Object.keys(obj1);
+          const keys2 = Object.keys(obj2);
+          if (keys1.length !== keys2.length) return true;
+          for (const key of keys1) {
+            if (isDifferent(obj1[key], obj2[key])) return true;
+          }
+          return false;
+        };
+
+        if (isDifferent(machine[key], initialMachine[key])) {
+          acc[key] = machine[key];
+        }
+        return acc;
+      }, {});
+
+      // Mettre à jour la machine si nécessaire
+      let machinePromise: Promise<any>;
+      if (Object.keys(updatedData).length > 0) {
+        notificationUpdating?.end();
+        const notif = notifyLoading(
+          'Mise à jour de la machine en cours',
+          'Machine mise à jour',
+          "Une erreur s'est produite lors de la mise à jour de la machine",
+        );
+        setNotificationUpdating(notif);
+        machinePromise = updateMachine(id!, updatedData, auth.token)
+          .then(({ eventUpdateType, ...newPartialMachine }) => {
+            notif.success(null);
+            const newMachine = { ...machine, ...newPartialMachine };
+            setMachine(newMachine);
+            setInitialMachine(cloneDeep(newMachine));
+            if (eventUpdateType && eventUpdateType !== 'none') {
+              switch (eventUpdateType) {
+                case 'create':
+                  notifySuccess(
+                    "Evénement d'entretien crée dans le calendrier",
+                  );
+                  break;
+                case 'update':
+                  notifySuccess(
+                    "Evénement d'entretien mis à jour dans le calendrier",
+                  );
+                  break;
+                case 'delete':
+                  notifySuccess(
+                    "Evénement d'entretien supprimé dans le calendrier",
+                  );
+                  break;
+                default:
+                  break;
+              }
+            }
+          })
+          .catch((error: Error) => {
+            notif.error(
+              `Une erreur s'est produite lors de la mise à jour de la machine: ${error}`,
+            );
+            console.error('Error updating machine:', error);
+          });
+      } else {
+        machinePromise = Promise.resolve();
+      }
+
+      // Exécuter toutes les mises à jour et rafraîchir les entretiens
+      await Promise.all([machinePromise]);
+    }
     setIsEditing(!isEditing);
-  }, [isEditing, machine, initialMachine, id, auth.token]);
+  }, [
+    isEditing,
+    machine,
+    initialMachine,
+    id,
+    auth.token,
+    notificationUpdating,
+  ]);
 
   const handleSelectChange = useCallback(
     (event: SelectChangeEvent<String>) => {
@@ -174,7 +228,7 @@ const SingleMachine = () => {
             imageUrl: res.imageUrl,
           };
           setMachine(machineUpdated);
-          setInitialMachine(machineUpdated);
+          setInitialMachine(cloneDeep(machineUpdated));
         } catch (e) {
           console.error('Error compressing image:', e);
           notifyError("Erreur lors de la compression de l'image");
@@ -221,7 +275,7 @@ const SingleMachine = () => {
           throw new Error('Not data found');
         }
         console.debug('Data fetched:', data);
-        setInitialMachine(data);
+        setInitialMachine(cloneDeep(data));
         setMachine(data);
       } catch (error) {
         console.error('Error fetching machine:', error);
@@ -235,6 +289,16 @@ const SingleMachine = () => {
     fetchData();
   }, [id, auth.token]);
 
+  useEffect(() => {
+    getAvailableParts(auth.token)
+      .then((data: { parts: string[] }) => {
+        setAvailableParts(data.parts);
+      })
+      .catch((err) => {
+        console.error('Erreur lors du chargement des pièces existantes', err);
+      });
+  }, [auth.token]);
+
   const renderField = (
     label: string,
     name: string,
@@ -243,6 +307,10 @@ const SingleMachine = () => {
     isMultiline: boolean = false,
     isEditing: boolean,
     xs?: 6 | 12 | 3,
+    size: 'small' | 'medium' = 'small',
+    showLabelWhenNotEditing: boolean = true,
+    onChange?: (value: string | Date | number | null) => void,
+    noValueDisplay?: string,
   ) => (
     <SingleField
       label={label}
@@ -251,8 +319,11 @@ const SingleMachine = () => {
       valueType={valueType}
       isMultiline={isMultiline}
       isEditing={isEditing}
-      handleChange={handleChange}
+      handleChange={onChange ? onChange : handleChange}
       xs={xs}
+      size={size}
+      showLabelWhenNotEditing={showLabelWhenNotEditing}
+      noValueDisplay={noValueDisplay}
     />
   );
 
@@ -265,6 +336,7 @@ const SingleMachine = () => {
     gridSize: 6 | 12,
     colorByValue: { [p: string]: string } = {},
     renderValue?: (value: string) => string,
+    size: 'small' | 'medium' = 'small',
   ) => {
     return (
       <MachineSelect
@@ -283,6 +355,7 @@ const SingleMachine = () => {
         )}
         colorByValue={colorByValue}
         renderValue={renderValue}
+        size={size}
       />
     );
   };
@@ -332,55 +405,59 @@ const SingleMachine = () => {
     });
   }, []);
 
+  const updateParts = useCallback((newParts: MachineRentedPart[]) => {
+    setMachine((prevMachine) => ({
+      ...prevMachine!,
+      parts: newParts,
+    }));
+  }, []);
+
+  const handleMaintenanceDone = async (date: Date | null, comment: string) => {
+    if (!id) return;
+    try {
+      const newMaintenance = await addMaintenanceHistory(
+        id,
+        comment,
+        auth.token,
+      );
+      setMachine((prevMachine) => ({
+        ...prevMachine!,
+        maintenanceHistories: [
+          ...(prevMachine?.maintenanceHistories || []),
+          newMaintenance,
+        ],
+      }));
+    } catch (error: any) {
+      notifyError("Erreur lors de l'ajout de l'entretien");
+      console.error("Erreur lors de l'ajout de l'entretien", error);
+    }
+  };
+
   return (
     <Box sx={{ padding: 4, paddingTop: 2 }}>
       {loading && <MachineLoading />}
-      <Grid container display={'flex'} mb={2}>
-        <Grid item xs={6}>
-          <Box display="flex" alignItems="center">
-            <Typography variant="h4" gutterBottom paddingTop={1}>
-              {machine?.name}
-            </Typography>
-            <IconButton onClick={switchEditing}>
-              {isEditing ? <SaveIcon /> : <EditIcon />}
-            </IconButton>
-          </Box>
-        </Grid>
-        <Grid
-          item
-          xs={6}
-          display={'flex'}
-          flexDirection={'row-reverse'}
-          gap={4}
-        >
-          <Button
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={deleteMachine}
-          >
-            Supprimer la machine
-          </Button>
-        </Grid>
-      </Grid>
       {machine && (
         <Grid container spacing={2}>
-          <Grid item xs={4}>
+          <Grid item xs={4} mt={1}>
             <Grid item xs={12} mb={1}>
               <Box display="flex" alignItems="center">
-                <Typography variant="h6">Informations</Typography>
+                <Typography variant="h6">Machine {machine?.name}</Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} display={'flex'} gap={'10px'}>
-              {renderField(
-                'Nom',
-                'name',
-                machine.name,
-                'text',
-                false,
-                isEditing,
-                12,
-              )}
-            </Grid>
+            {isEditing && (
+              <Grid item xs={12} display={'flex'} gap={'10px'}>
+                {renderField(
+                  'Nom',
+                  'name',
+                  machine.name,
+                  'text',
+                  false,
+                  isEditing,
+                  12,
+                  'small',
+                )}
+              </Grid>
+            )}
             <Grid item xs={12} display={'flex'} gap={'10px'}>
               {renderSelect(
                 'Type de maintenance',
@@ -391,6 +468,7 @@ const SingleMachine = () => {
                 12,
                 {},
                 (value: string) => TYPE_VALUE_ASSOCIATION[value] ?? value,
+                'small',
               )}
             </Grid>
             <Grid item xs={12} display={'flex'} gap={'10px'}>
@@ -403,6 +481,7 @@ const SingleMachine = () => {
                     false,
                     isEditing,
                     12,
+                    'small',
                   )
                 : renderField(
                     'Nombre de location avant maintenance',
@@ -412,6 +491,7 @@ const SingleMachine = () => {
                     false,
                     isEditing,
                     12,
+                    'small',
                   )}
             </Grid>
             <Grid item xs={12} display={'flex'}>
@@ -421,8 +501,9 @@ const SingleMachine = () => {
                 machine.last_maintenance_date,
                 'date',
                 false,
-                isEditing,
+                false,
                 12,
+                'small',
               )}
             </Grid>
             <Grid item xs={12} display={'flex'}>
@@ -434,6 +515,7 @@ const SingleMachine = () => {
                 false,
                 false,
                 12,
+                'small',
               )}
             </Grid>
             <Grid item xs={12} display={'flex'}>
@@ -447,6 +529,7 @@ const SingleMachine = () => {
                 false,
                 isEditing,
                 12,
+                'small',
               )}
             </Grid>
             <SingleField
@@ -464,6 +547,7 @@ const SingleMachine = () => {
               handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
               handleAddEmailGuest={handleAddEmailGuest}
               handleRemoveEmailGuest={handleRemoveEmailGuest}
+              size="small"
             />
             <Grid item xs={12} display={'flex'}>
               <ImageList variant="masonry" cols={1} gap={8}>
@@ -498,30 +582,96 @@ const SingleMachine = () => {
               </ImageList>
             </Grid>
           </Grid>
-          <Grid item xs={8} maxHeight={'75vh'}>
-            <Grid item xs={12} mb={1}>
-              <Box display="flex" alignItems="center">
-                <Typography variant="h6">Locations</Typography>
-              </Box>
+          <Grid item xs={8}>
+            <Grid
+              container
+              display={'flex'}
+              mb={2}
+              justifyContent="space-between"
+            >
+              <Grid item>
+                <Tabs
+                  value={tabValue}
+                  onChange={(event, newValue) => setTabValue(newValue)}
+                  indicatorColor="primary"
+                  textColor="primary"
+                >
+                  <Tab label="Locations" />
+                  <Tab label="Entretiens & Pièces" />
+                </Tabs>
+              </Grid>
+              <Grid item display={'flex'} flexDirection={'row'} gap={4}>
+                <Button
+                  color="primary"
+                  startIcon={<AddIcon />}
+                  onClick={() => setDialogOpen(true)}
+                >
+                  Ajouter un entretien
+                </Button>
+                <Button
+                  color={isEditing ? 'success' : 'warning'}
+                  startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
+                  onClick={switchEditing}
+                >
+                  {isEditing ? 'enregistrer la machine' : 'modifier la machine'}
+                </Button>
+                <Button
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={deleteMachine}
+                >
+                  Supprimer la machine
+                </Button>
+              </Grid>
             </Grid>
-            <MachineRentalGrid
-              rowData={
-                loading
-                  ? []
-                  : (machine.machineRentals as MachineRentalWithMachineRented[])
-              }
-              loading={loading}
-              columnsToShow={[
-                COLUMN_ID_RENTAL_GRID.ID,
-                COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME,
-                COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME,
-                COLUMN_ID_RENTAL_GRID.RENTAL_DATE,
-                COLUMN_ID_RENTAL_GRID.RETURN_DATE,
-              ]}
-            />
+            <Box sx={{ mt: 2, maxHeight: '75vh', height: '100%' }}>
+              {tabValue === 0 && (
+                <MachineRentalGrid
+                  rowData={
+                    loading
+                      ? []
+                      : (machine.machineRentals as MachineRentalWithMachineRented[])
+                  }
+                  loading={loading}
+                  columnsToShow={[
+                    COLUMN_ID_RENTAL_GRID.ID,
+                    COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME,
+                    COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME,
+                    COLUMN_ID_RENTAL_GRID.RENTAL_DATE,
+                    COLUMN_ID_RENTAL_GRID.RETURN_DATE,
+                  ]}
+                />
+              )}
+              {tabValue === 1 && (
+                <Grid container spacing={2}>
+                  <MaintenanceHistory
+                    machine={machine}
+                    isEditing={isEditing}
+                    setMachine={setMachine}
+                  />
+                  <Grid item xs={6}>
+                    <MachineParts
+                      parts={machine.parts || []}
+                      isEditing={isEditing}
+                      onChange={updateParts}
+                      availableParts={availableParts}
+                    />
+                  </Grid>
+                </Grid>
+              )}
+            </Box>
           </Grid>
         </Grid>
       )}
+      <MaintenanceDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maintenanceDate={maintenanceDate}
+        maintenanceComment={maintenanceComment}
+        setMaintenanceDate={setMaintenanceDate}
+        setMaintenanceComment={setMaintenanceComment}
+        handleMaintenanceDone={handleMaintenanceDone}
+      />
     </Box>
   );
 };

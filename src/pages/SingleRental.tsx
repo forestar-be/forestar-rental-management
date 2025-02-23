@@ -285,6 +285,7 @@ const SingleRental = () => {
               isEditing={isEditing}
               xs={12}
               handleChange={handleChange}
+              size="small"
             />
             <SingleField
               label="Date de retour"
@@ -294,6 +295,7 @@ const SingleRental = () => {
               isEditing={isEditing}
               xs={12}
               handleChange={handleChange}
+              size="small"
             />
             <SingleField
               label="Prix total"
@@ -302,6 +304,7 @@ const SingleRental = () => {
               valueType={'text'}
               isEditing={false}
               handleChange={() => {}}
+              size="small"
             />
             <SingleField
               label="Prénom"
@@ -311,6 +314,7 @@ const SingleRental = () => {
               isEditing={isEditing}
               xs={12}
               handleChange={handleChange}
+              size="small"
             />
             <SingleField
               label="Nom"
@@ -320,6 +324,7 @@ const SingleRental = () => {
               isEditing={isEditing}
               xs={12}
               handleChange={handleChange}
+              size="small"
             />
             <SingleField
               label="Email"
@@ -329,6 +334,7 @@ const SingleRental = () => {
               isEditing={isEditing}
               xs={12}
               handleChange={handleChange}
+              size="small"
             />
             <SingleField
               label="Téléphone"
@@ -338,6 +344,7 @@ const SingleRental = () => {
               isEditing={isEditing}
               xs={12}
               handleChange={handleChange}
+              size="small"
             />
             <SingleField
               label="Adresse"
@@ -347,6 +354,7 @@ const SingleRental = () => {
               isEditing={isEditing}
               xs={12}
               handleChange={handleChange}
+              size="small"
             />
             <SingleField
               label="Code postal"
@@ -356,6 +364,7 @@ const SingleRental = () => {
               isEditing={isEditing}
               xs={12}
               handleChange={handleChange}
+              size="small"
             />
             <SingleField
               label="Ville"
@@ -365,6 +374,7 @@ const SingleRental = () => {
               isEditing={isEditing}
               xs={12}
               handleChange={handleChange}
+              size="small"
             />
             <SingleField
               label="Invités"
@@ -381,6 +391,7 @@ const SingleRental = () => {
               handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
               handleAddEmailGuest={handleAddEmailGuest}
               handleRemoveEmailGuest={handleRemoveEmailGuest}
+              size="small"
             />
           </Grid>
           <Grid item xs={6} spacing={4}>

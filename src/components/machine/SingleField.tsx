@@ -27,6 +27,9 @@ interface Props {
   handleEditEmailGuestByIndex?: (value: string, index: number) => void;
   handleAddEmailGuest?: (value: string) => void;
   handleRemoveEmailGuest?: (value: string) => void;
+  size?: 'small' | 'medium';
+  showLabelWhenNotEditing?: boolean;
+  noValueDisplay?: string;
 }
 
 const DatePickerField: React.FC<Props> = ({
@@ -35,10 +38,21 @@ const DatePickerField: React.FC<Props> = ({
   value,
   handleChange,
   required,
+  size,
+  isEditing,
+  valueType,
+  xs,
+  emails,
+  errorsEmails,
+  touchedEmails,
+  lastIndexEmail,
+  handleEditEmailGuestByIndex,
+  handleAddEmailGuest,
+  handleRemoveEmailGuest,
 }) => (
   <DatePicker
     timezone={'Europe/Paris'}
-    sx={{ margin: '5px 0' }}
+    sx={{ margin: size === 'small' ? '8px 0' : '5px 0' }}
     label={label}
     format={'DD/MM/YYYY'}
     value={value ? dayjs(value) : null}
@@ -49,6 +63,7 @@ const DatePickerField: React.FC<Props> = ({
         name: label,
         required: required,
         fullWidth: true,
+        size: size,
         inputProps: {
           'aria-describedby': `${label}-error`,
           'aria-required': required,
@@ -66,9 +81,19 @@ const TextFieldComponent: React.FC<Props> = ({
   isMultiline,
   valueType,
   required,
+  size,
+  isEditing,
+  xs,
+  emails,
+  errorsEmails,
+  touchedEmails,
+  lastIndexEmail,
+  handleEditEmailGuestByIndex,
+  handleAddEmailGuest,
+  handleRemoveEmailGuest,
 }) => (
   <TextField
-    sx={{ margin: '5px 0' }}
+    sx={{ margin: size === 'small' ? '8px 0' : '5px 0' }}
     fullWidth
     label={label}
     required={required}
@@ -81,6 +106,7 @@ const TextFieldComponent: React.FC<Props> = ({
       )
     }
     multiline={isMultiline}
+    size={size}
     slotProps={{
       htmlInput: {
         min: valueType === 'number' ? 0 : undefined,
@@ -108,6 +134,9 @@ const SingleField: React.FC<Props> = ({
   handleEditEmailGuestByIndex,
   handleAddEmailGuest,
   handleRemoveEmailGuest,
+  size,
+  showLabelWhenNotEditing = true,
+  noValueDisplay = '-',
 }) => {
   useEffect(() => {
     if (
@@ -133,20 +162,21 @@ const SingleField: React.FC<Props> = ({
             value={value}
             handleChange={handleChange}
             required={required}
+            size={size}
             isEditing={isEditing}
-            isMultiline={isMultiline}
             valueType={valueType}
             xs={xs}
-            handleAddEmailGuest={handleAddEmailGuest}
-            handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
-            handleRemoveEmailGuest={handleRemoveEmailGuest}
             emails={emails}
             errorsEmails={errorsEmails}
             touchedEmails={touchedEmails}
             lastIndexEmail={lastIndexEmail}
+            handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
+            handleAddEmailGuest={handleAddEmailGuest}
+            handleRemoveEmailGuest={handleRemoveEmailGuest}
           />
         ) : valueType === 'guest_email_list' ? (
           <EditEmailsGuestFields
+            size={size}
             values={emails!}
             errors={errorsEmails}
             touched={touchedEmails}
@@ -167,15 +197,16 @@ const SingleField: React.FC<Props> = ({
             isMultiline={isMultiline}
             valueType={valueType}
             required={required}
+            size={size}
             isEditing={isEditing}
             xs={xs}
-            handleAddEmailGuest={handleAddEmailGuest}
-            handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
-            handleRemoveEmailGuest={handleRemoveEmailGuest}
             emails={emails}
             errorsEmails={errorsEmails}
             touchedEmails={touchedEmails}
             lastIndexEmail={lastIndexEmail}
+            handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
+            handleAddEmailGuest={handleAddEmailGuest}
+            handleRemoveEmailGuest={handleRemoveEmailGuest}
           />
         )
       ) : (
@@ -185,15 +216,17 @@ const SingleField: React.FC<Props> = ({
           gap={isMultiline ? '0' : '10px'}
           margin={'5px 0'}
         >
-          <Typography variant="subtitle1" noWrap>
-            {label} :
-          </Typography>
+          {showLabelWhenNotEditing && (
+            <Typography variant="subtitle1" noWrap>
+              {label} :
+            </Typography>
+          )}
           <Typography variant="subtitle1" sx={{ overflowWrap: 'break-word' }}>
             {valueType === 'date' && value
               ? new Date(String(value)).toLocaleDateString('fr-Fr')
               : value
                 ? String(value)
-                : '-'}
+                : noValueDisplay}
           </Typography>
         </Box>
       )}
