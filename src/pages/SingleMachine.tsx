@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Tooltip,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
@@ -35,7 +36,6 @@ import {
   fetchMachineById,
   updateMachine,
   updateMachineRentedImage,
-  addMaintenanceHistory,
 } from '../utils/api';
 import { MachineSelect } from '../components/machine/MachineSelect';
 import { SelectChangeEvent } from '@mui/material/Select/SelectInput';
@@ -133,25 +133,7 @@ const SingleMachine = () => {
             setMachine(newMachine);
             setInitialMachine(cloneDeep(newMachine));
             if (eventUpdateType && eventUpdateType !== 'none') {
-              switch (eventUpdateType) {
-                case 'create':
-                  notifySuccess(
-                    "Evénement d'entretien crée dans le calendrier",
-                  );
-                  break;
-                case 'update':
-                  notifySuccess(
-                    "Evénement d'entretien mis à jour dans le calendrier",
-                  );
-                  break;
-                case 'delete':
-                  notifySuccess(
-                    "Evénement d'entretien supprimé dans le calendrier",
-                  );
-                  break;
-                default:
-                  break;
-              }
+              handleEventUpdateNotification(eventUpdateType);
             }
           })
           .catch((error: Error) => {
@@ -415,23 +397,54 @@ const SingleMachine = () => {
   const handleMaintenanceDone = async (date: Date | null, comment: string) => {
     if (!id) return;
     try {
-      const newMaintenance = await addMaintenanceHistory(
+      const newMachineWithUpdateType = await updateMachine(
         id,
-        comment,
+        {
+          maintenanceHistories: [
+            ...(machine?.maintenanceHistories || []),
+            {
+              performedAt: date || new Date(),
+              notes: comment,
+            },
+          ],
+        },
         auth.token,
       );
-      setMachine((prevMachine) => ({
-        ...prevMachine!,
-        maintenanceHistories: [
-          ...(prevMachine?.maintenanceHistories || []),
-          newMaintenance,
-        ],
-      }));
+
+      const { eventUpdateType, ...newPartialMachine } =
+        newMachineWithUpdateType;
+
+      if (eventUpdateType && eventUpdateType !== 'none') {
+        handleEventUpdateNotification(eventUpdateType);
+      }
+
+      const newMachine = { ...machine!, ...newPartialMachine };
+      setMachine(newMachine);
+      setInitialMachine(cloneDeep(newMachine));
     } catch (error: any) {
       notifyError("Erreur lors de l'ajout de l'entretien");
       console.error("Erreur lors de l'ajout de l'entretien", error);
     }
   };
+
+  const handleEventUpdateNotification = useCallback(
+    (eventUpdateType: string) => {
+      switch (eventUpdateType) {
+        case 'create':
+          notifySuccess("Evénement d'entretien crée dans le calendrier");
+          break;
+        case 'update':
+          notifySuccess("Evénement d'entretien mis à jour dans le calendrier");
+          break;
+        case 'delete':
+          notifySuccess("Evénement d'entretien supprimé dans le calendrier");
+          break;
+        default:
+          break;
+      }
+    },
+    [],
+  );
 
   return (
     <Box sx={{ padding: 4, paddingTop: 2 }}>
@@ -532,6 +545,18 @@ const SingleMachine = () => {
                 'small',
               )}
             </Grid>
+            <Grid item xs={12} display={'flex'}>
+              {renderField(
+                'Caution',
+                'deposit',
+                isEditing ? machine.deposit : `${machine.deposit} €`,
+                isEditing ? 'number' : 'text',
+                false,
+                isEditing,
+                12,
+                'small',
+              )}
+            </Grid>
             <SingleField
               label="Invités"
               name="guests"
@@ -588,6 +613,7 @@ const SingleMachine = () => {
               display={'flex'}
               mb={2}
               justifyContent="space-between"
+              flexWrap="nowrap"
             >
               <Grid item>
                 <Tabs
@@ -608,20 +634,30 @@ const SingleMachine = () => {
                 >
                   Ajouter un entretien
                 </Button>
-                <Button
-                  color={isEditing ? 'success' : 'warning'}
-                  startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
-                  onClick={switchEditing}
+                <Tooltip
+                  title={
+                    isEditing
+                      ? 'Enregistrer les modifications'
+                      : 'Modifier la machine'
+                  }
                 >
-                  {isEditing ? 'enregistrer la machine' : 'modifier la machine'}
-                </Button>
-                <Button
-                  color="error"
-                  startIcon={<DeleteIcon />}
-                  onClick={deleteMachine}
-                >
-                  Supprimer la machine
-                </Button>
+                  <Button
+                    color={isEditing ? 'success' : 'warning'}
+                    startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
+                    onClick={switchEditing}
+                  >
+                    {isEditing ? 'enregistrer' : 'modifier'}
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Supprimer la machine">
+                  <Button
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={deleteMachine}
+                  >
+                    Supprimer
+                  </Button>
+                </Tooltip>
               </Grid>
             </Grid>
             <Box sx={{ mt: 2, maxHeight: '75vh', height: '100%' }}>

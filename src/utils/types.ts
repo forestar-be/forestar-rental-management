@@ -24,8 +24,7 @@ export type MachineRentalToCreate = Omit<
 >;
 
 export interface MaintenanceHistory {
-  id: number;
-  machineRentedId: number;
+  id?: string;
   performedAt: Date;
   notes: string;
 }
@@ -43,6 +42,7 @@ export interface MachineRented {
   guests: string[];
   parts: MachineRentedPart[];
   maintenanceHistories: MaintenanceHistory[];
+  deposit: number;
 }
 
 export type MachineRentedWithoutRental = Omit<MachineRented, 'machineRentals'>;
@@ -61,7 +61,7 @@ export type MachineRentedCreated = Omit<
   | 'parts'
 >;
 
-export type MachineRentedUpdatedData = Partial<MachineRentedCreated>;
+export type MachineRentedUpdatedData = Partial<MachineRented>;
 
 export interface MachineRentedPart {
   partName: string;

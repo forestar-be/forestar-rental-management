@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Typography, Grid } from '@mui/material';
+import { Box, Typography, Grid, IconButton } from '@mui/material';
 import SingleField from './machine/SingleField';
 import { MachineRentedWithImage } from '../utils/types';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface MaintenanceHistoryProps {
   machine: MachineRentedWithImage;
@@ -90,6 +91,25 @@ const MaintenanceHistory: React.FC<MaintenanceHistoryProps> = ({
                 showLabelWhenNotEditing={false}
               />
             </Box>
+            {isEditing && (
+              <IconButton
+                onClick={() =>
+                  setMachine((prevMachine) => {
+                    if (!prevMachine) return null;
+                    const updatedHistories =
+                      prevMachine.maintenanceHistories.filter(
+                        (mh) => mh.id !== m.id,
+                      );
+                    return {
+                      ...prevMachine,
+                      maintenanceHistories: updatedHistories,
+                    };
+                  })
+                }
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
           </Box>
         ))
       )}
