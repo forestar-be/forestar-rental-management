@@ -40,7 +40,11 @@ import {
 import { MachineSelect } from '../components/machine/MachineSelect';
 import { SelectChangeEvent } from '@mui/material/Select/SelectInput';
 import { TYPE_VALUE_ASSOCIATION } from '../config/constants';
-import { compressImage, getKeys } from '../utils/common.utils';
+import {
+  compressImage,
+  formatPriceNumberToFrenchFormatStr,
+  getKeys,
+} from '../utils/common.utils';
 import VisuallyHiddenInput from '../components/VisuallyHiddenInput';
 import MachineRentalGrid, {
   COLUMN_ID_RENTAL_GRID,
@@ -537,7 +541,7 @@ const SingleMachine = () => {
                 'price_per_day',
                 isEditing
                   ? machine.price_per_day
-                  : `${machine.price_per_day} €`,
+                  : formatPriceNumberToFrenchFormatStr(machine.price_per_day),
                 isEditing ? 'number' : 'text',
                 false,
                 isEditing,
@@ -549,7 +553,9 @@ const SingleMachine = () => {
               {renderField(
                 'Caution',
                 'deposit',
-                isEditing ? machine.deposit : `${machine.deposit} €`,
+                isEditing
+                  ? machine.deposit
+                  : formatPriceNumberToFrenchFormatStr(machine.deposit),
                 isEditing ? 'number' : 'text',
                 false,
                 isEditing,
