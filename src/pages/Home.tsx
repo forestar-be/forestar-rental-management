@@ -64,7 +64,6 @@ const Home = (): JSX.Element => {
     useState<MachineRentedWithImage | null>(null);
   const [filterText, setFilterText] = useState<string>('');
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [formEdited, setFormEdited] = useState(false);
 
   const handleClickOpen = (machine: MachineRentedWithImage) => {
     setSelectedMachine(machine);
@@ -100,9 +99,8 @@ const Home = (): JSX.Element => {
         setLoadingCreate(true);
         // Appel à l'API pour créer une machine louée
         await createMachineRental(selectedMachine.id, values, auth.token);
-        formik.resetForm();
         toast.success('Location de la machine créée avec succès');
-        handleClose();
+        handleClose(true);
       } catch (error) {
         console.error('Failed to create machine rental:', error);
         toast.error(
@@ -114,15 +112,14 @@ const Home = (): JSX.Element => {
     },
   });
 
-  // Track form changes
-  useEffect(() => {
-    setFormEdited(
-      JSON.stringify(formik.values) !== JSON.stringify(formik.initialValues),
+  const formEdited = useMemo(() => {
+    return (
+      JSON.stringify(formik.values) !== JSON.stringify(formik.initialValues)
     );
-  }, [formik.values]);
+  }, [formik.values, formik.initialValues]);
 
-  const handleClose = () => {
-    if (formEdited) {
+  const handleClose = (doNotConfirm?: boolean) => {
+    if (formEdited && !doNotConfirm) {
       setConfirmOpen(true);
     } else {
       setOpen(false);
