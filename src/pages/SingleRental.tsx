@@ -386,7 +386,7 @@ const SingleRental = () => {
               handleChange={() => {}} // not used with guest_email_list
               emails={rental.guests}
               errorsEmails={[]}
-              touchedEmails={true}
+              touchedEmails={[]}
               lastIndexEmail={rental.guests.length - 1}
               handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
               handleAddEmailGuest={handleAddEmailGuest}

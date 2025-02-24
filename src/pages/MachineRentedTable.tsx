@@ -69,6 +69,8 @@ const MachineRentedTable: React.FC = () => {
   ) => {
     try {
       setLoadingCreate(true);
+      // remove empty guests
+      values.guests = values.guests.filter((guest) => !!guest);
       const addedMachine = await addMachineRented(values, auth.token);
       setMachineRentedList((prev) => [...prev, addedMachine]);
       setIsModalOpen(false);

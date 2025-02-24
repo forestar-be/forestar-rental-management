@@ -19,6 +19,7 @@ import CreateRentalDialog from '../components/CreateRentalDialog';
 import MachineRentedImageItem from '../components/MachineRentedImageItem';
 import { useGlobalData } from '../contexts/GlobalDataContext';
 import SearchIcon from '@mui/icons-material/Search';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const phoneRegex =
   /^(\+?[1-9]\d{0,2}[-.\s]?)?(0?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}(?:[-.\s]?\d{1,9})?)$/;
@@ -62,15 +63,12 @@ const Home = (): JSX.Element => {
   const [selectedMachine, setSelectedMachine] =
     useState<MachineRentedWithImage | null>(null);
   const [filterText, setFilterText] = useState<string>('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [formEdited, setFormEdited] = useState(false);
 
   const handleClickOpen = (machine: MachineRentedWithImage) => {
     setSelectedMachine(machine);
     setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedMachine(null);
   };
 
   const formik = useFormik<MachineRentalToCreate>({
@@ -88,15 +86,21 @@ const Home = (): JSX.Element => {
     },
     validationSchema: validationSchema,
     onSubmit: async (values: MachineRentalToCreate) => {
-      if (!selectedMachine) return;
+      if (!selectedMachine) {
+        console.warn('No machine selected, cannot create rental');
+        return;
+      }
 
       try {
         if (!values.rentalDate || !values.returnDate) {
           throw new Error('Invalid dates');
         }
+        // remove empty guests
+        values.guests = values.guests.filter((guest) => !!guest);
         setLoadingCreate(true);
         // Appel à l'API pour créer une machine louée
         await createMachineRental(selectedMachine.id, values, auth.token);
+        formik.resetForm();
         toast.success('Location de la machine créée avec succès');
         handleClose();
       } catch (error) {
@@ -109,6 +113,30 @@ const Home = (): JSX.Element => {
       }
     },
   });
+
+  // Track form changes
+  useEffect(() => {
+    setFormEdited(
+      JSON.stringify(formik.values) !== JSON.stringify(formik.initialValues),
+    );
+  }, [formik.values]);
+
+  const handleClose = () => {
+    if (formEdited) {
+      setConfirmOpen(true);
+    } else {
+      setOpen(false);
+      setSelectedMachine(null);
+      formik.resetForm();
+    }
+  };
+
+  const handleConfirmClose = () => {
+    setConfirmOpen(false);
+    setOpen(false);
+    setSelectedMachine(null);
+    formik.resetForm();
+  };
 
   // Filter the machine rented list based on the filterText and item.name using useMemo
   const filteredMachines = useMemo(() => {
@@ -172,6 +200,13 @@ const Home = (): JSX.Element => {
         onChangeReturnDate={(date) =>
           formik.setFieldValue('returnDate', date ? date.toDate() : null)
         }
+      />
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Confirmer la fermeture"
+        content="Vous avez des modifications non enregistrées. Êtes-vous sûr de fermer le formulaire?"
+        onConfirm={handleConfirmClose}
+        onCancel={() => setConfirmOpen(false)}
       />
     </div>
   );

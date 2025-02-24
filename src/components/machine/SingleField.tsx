@@ -22,7 +22,7 @@ interface Props {
   required?: boolean;
   emails?: string[];
   errorsEmails?: string[];
-  touchedEmails?: boolean;
+  touchedEmails?: boolean[];
   lastIndexEmail?: number;
   handleEditEmailGuestByIndex?: (value: string, index: number) => void;
   handleAddEmailGuest?: (value: string) => void;

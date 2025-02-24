@@ -378,8 +378,8 @@ const CreateRentalDialog = (props: {
             />
             <EditEmailsGuestFields
               values={props.formik.values.guests}
-              errors={props.formik.errors.guests}
-              touched={props.formik.touched.guests}
+              errors={props.formik.errors.guests as string[]}
+              touched={props.formik.touched.guests as unknown as boolean[]}
               lastIndex={lastIndex}
               onChange={(e) =>
                 handleEditGuestByIndex(e.target.value, lastIndex)
@@ -390,7 +390,7 @@ const CreateRentalDialog = (props: {
             />
           </Box>
           <DialogActions>
-            <Button onClick={props.onClose} color="primary">
+            <Button onClick={props.onClose} color="secondary">
               Annuler
             </Button>
             <Button type="submit" color="primary">
