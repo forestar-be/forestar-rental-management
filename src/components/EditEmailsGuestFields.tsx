@@ -1,11 +1,12 @@
 import React, { FC } from 'react';
 import { Autocomplete, TextField, Box, Button } from '@mui/material';
 import { useGlobalData } from '../contexts/GlobalDataContext';
+import { Helmet } from 'react-helmet-async';
 
 interface EditEmailsGuestFieldsProps {
   values: string[];
-  errors: string | string[] | undefined;
-  touched: boolean | undefined;
+  errors: string[] | undefined;
+  touched: boolean[] | undefined;
   lastIndex: number;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onClickAddGuest: () => void;
@@ -33,13 +34,6 @@ const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
         options={knownEmails || []}
         freeSolo
         clearOnBlur={false}
-        filterOptions={(options, state) =>
-          options.filter((option) =>
-            option
-              .toLowerCase()
-              .includes(String(values[lastIndex]).toLowerCase()),
-          )
-        }
         value={values[lastIndex] || ''}
         inputValue={values[lastIndex] || ''}
         onInputChange={(_event, newInputValue, reason) => {
@@ -53,10 +47,19 @@ const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
           }
         }}
         renderInput={(params) => (
-          <TextField {...params} label="Ajouter un invité" size={size} />
+          <TextField
+            {...params}
+            label="Ajouter un invité"
+            size={size}
+            error={touched?.[lastIndex] && Boolean(errors?.[lastIndex])}
+            helperText={
+              touched?.[lastIndex] && errors?.[lastIndex]
+                ? String(errors?.[lastIndex])
+                : ''
+            }
+          />
         )}
       />
-
       {values.map((email, index) => {
         if (index === lastIndex) return null;
         return (
@@ -70,8 +73,12 @@ const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
               label={`Email de l'invité ${index + 1}`}
               value={email}
               onChange={(e) => handleEditGuestByIndex(e.target.value, index)}
-              error={touched && Boolean(errors)}
-              helperText={touched && errors ? String(errors) : ''}
+              error={touched?.[index] && Boolean(errors?.[index])}
+              helperText={
+                touched?.[index] && errors?.[index]
+                  ? String(errors?.[index])
+                  : ''
+              }
               size={size}
             />
             <Button
@@ -85,7 +92,6 @@ const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
           </Box>
         );
       })}
-
       <Button
         onClick={onClickAddGuest}
         variant="outlined"

@@ -573,7 +573,7 @@ const SingleMachine = () => {
               handleChange={() => {}} // not used with guest_email_list
               emails={machine.guests}
               errorsEmails={[]}
-              touchedEmails={true}
+              touchedEmails={[]}
               lastIndexEmail={machine.guests.length - 1}
               handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
               handleAddEmailGuest={handleAddEmailGuest}
@@ -666,26 +666,28 @@ const SingleMachine = () => {
                 </Tooltip>
               </Grid>
             </Grid>
-            <Box sx={{ mt: 2, maxHeight: '75vh', height: '100%' }}>
+            <Box sx={{ mt: 2, height: '100%' }}>
               {tabValue === 0 && (
-                <MachineRentalGrid
-                  rowData={
-                    loading
-                      ? []
-                      : (machine.machineRentals as MachineRentalWithMachineRented[])
-                  }
-                  loading={loading}
-                  columnsToShow={[
-                    COLUMN_ID_RENTAL_GRID.ID,
-                    COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME,
-                    COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME,
-                    COLUMN_ID_RENTAL_GRID.RENTAL_DATE,
-                    COLUMN_ID_RENTAL_GRID.RETURN_DATE,
-                  ]}
-                />
+                <Box sx={{ maxHeight: '75vh', height: '100%' }}>
+                  <MachineRentalGrid
+                    rowData={
+                      loading
+                        ? []
+                        : (machine.machineRentals as MachineRentalWithMachineRented[])
+                    }
+                    loading={loading}
+                    columnsToShow={[
+                      COLUMN_ID_RENTAL_GRID.ID,
+                      COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME,
+                      COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME,
+                      COLUMN_ID_RENTAL_GRID.RENTAL_DATE,
+                      COLUMN_ID_RENTAL_GRID.RETURN_DATE,
+                    ]}
+                  />
+                </Box>
               )}
               {tabValue === 1 && (
-                <Grid container spacing={2}>
+                <Grid container spacing={2} sx={{ ml: 0.1 }}>
                   <MaintenanceHistory
                     machine={machine}
                     isEditing={isEditing}

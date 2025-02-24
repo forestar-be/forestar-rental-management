@@ -299,8 +299,8 @@ const CreateMachineDialog = (props: {
             />
             <EditEmailsGuestFields
               values={formik.values.guests}
-              errors={formik.errors.guests}
-              touched={formik.touched.guests}
+              errors={formik.errors.guests as string[]}
+              touched={formik.touched.guests as unknown as boolean[]}
               lastIndex={lastIndexGuests}
               onChange={(e) =>
                 handleEditGuestByIndex(e.target.value, lastIndexGuests)
@@ -311,7 +311,9 @@ const CreateMachineDialog = (props: {
             />
           </Box>
           <DialogActions>
-            <Button onClick={props.onClose}>Annuler</Button>
+            <Button onClick={props.onClose} color="secondary">
+              Annuler
+            </Button>
             <Button
               type="submit"
               variant="contained"
