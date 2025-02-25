@@ -94,7 +94,7 @@ const SingleRental = () => {
   }, [isEditing, rental, initialRental, id, auth.token, updateRentalData]);
 
   const handleChange = useCallback(
-    (value: string | Date | number | null, name: string) => {
+    (value: string | Date | number | null | boolean, name: string) => {
       setRental((prevRental) =>
         prevRental ? { ...prevRental, [name]: value } : null,
       );

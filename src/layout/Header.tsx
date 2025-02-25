@@ -59,24 +59,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
               navigate('/');
             }}
           >
-            <IconButton size="large" disabled>
-              <Logo isDark={theme.palette.mode === 'dark'} />
-              <Box sx={{ display: { md: 'inline', xs: 'none' } }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    flexGrow: 1,
-                    color: theme.palette.text.primary,
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase',
-                    textDecoration: 'none',
-                    marginLeft: '10px',
-                  }}
-                >
-                  {header.title}
-                </Typography>
-              </Box>
-            </IconButton>
+            <Logo isDark={theme.palette.mode === 'dark'} />
           </Link>
           <Box sx={{ flexGrow: 1 }} />
           <Box
@@ -141,7 +124,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                 }}
               />
               <Box sx={{ display: 'flex', gap: 1 }}>
-                {/* <IconButton
+                <IconButton
                   component="a"
                   href={`/parametres`}
                   onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -154,7 +137,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   <Tooltip title="Paramètres">
                     <SettingsIcon fontSize="medium" />
                   </Tooltip>
-                </IconButton> */}
+                </IconButton>
                 <IconButton
                   onClick={auth.logOut}
                   aria-label="Déconnexion"

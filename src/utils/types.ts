@@ -43,6 +43,7 @@ export interface MachineRented {
   parts: MachineRentedPart[];
   maintenanceHistories: MaintenanceHistory[];
   deposit: number;
+  with_shipping: boolean;
 }
 
 export type MachineRentedWithoutRental = Omit<MachineRented, 'machineRentals'>;

@@ -18,6 +18,8 @@ import {
   DialogContent,
   DialogActions,
   Tooltip,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
@@ -188,7 +190,7 @@ const SingleMachine = () => {
   );
 
   const handleChange = useCallback(
-    (value: string | Date | number | null, name: string) => {
+    (value: string | Date | number | boolean | null, name: string) => {
       const updatedData = { [name as keyof MachineRentedWithImage]: value };
       const newMachine = {
         ...machine,
@@ -295,7 +297,7 @@ const SingleMachine = () => {
     xs?: 6 | 12 | 3,
     size: 'small' | 'medium' = 'small',
     showLabelWhenNotEditing: boolean = true,
-    onChange?: (value: string | Date | number | null) => void,
+    onChange?: (value: string | Date | number | null | boolean) => void,
     noValueDisplay?: string,
   ) => (
     <SingleField
@@ -561,6 +563,35 @@ const SingleMachine = () => {
                 isEditing,
                 12,
                 'small',
+              )}
+            </Grid>
+            <Grid item xs={12} display={'flex'} alignItems="center">
+              {isEditing ? (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={machine.with_shipping}
+                      onChange={(e) => {
+                        handleChange(e.target.checked, 'with_shipping');
+                      }}
+                      name="with_shipping"
+                    />
+                  }
+                  label="Avec livraison"
+                />
+              ) : (
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  sx={{ margin: '8px 0' }}
+                >
+                  <Typography variant="subtitle1" noWrap>
+                    Avec livraison :
+                  </Typography>
+                  <Typography variant="subtitle1" sx={{ marginLeft: '10px' }}>
+                    {machine.with_shipping ? 'Oui' : 'Non'}
+                  </Typography>
+                </Box>
               )}
             </Grid>
             <SingleField

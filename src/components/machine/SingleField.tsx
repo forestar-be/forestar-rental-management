@@ -13,11 +13,14 @@ dayjs.extend(timezone);
 interface Props {
   label: string;
   name: string;
-  value: string | Date | number | null;
+  value: string | Date | number | boolean | null;
   valueType: 'text' | 'date' | 'number' | 'guest_email_list';
   isMultiline?: boolean;
   isEditing: boolean;
-  handleChange: (value: string | Date | number | null, name: string) => void;
+  handleChange: (
+    value: string | Date | number | boolean | null,
+    name: string,
+  ) => void;
   xs?: 6 | 12 | 3;
   required?: boolean;
   emails?: string[];
@@ -55,7 +58,7 @@ const DatePickerField: React.FC<Props> = ({
     sx={{ margin: size === 'small' ? '8px 0' : '5px 0' }}
     label={label}
     format={'DD/MM/YYYY'}
-    value={value ? dayjs(value) : null}
+    value={value && typeof value === 'object' ? dayjs(value as Date) : null}
     onChange={(date) => handleChange(date?.toDate() ?? new Date(), name)}
     slotProps={{
       textField: {
