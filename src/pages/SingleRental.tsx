@@ -7,6 +7,8 @@ import {
   IconButton,
   Tooltip,
   Typography,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
@@ -221,9 +223,6 @@ const SingleRental = () => {
             <Typography variant="h4" gutterBottom paddingTop={1}>
               Location n°{rental?.id}
             </Typography>
-            <IconButton onClick={switchEditing}>
-              {isEditing ? <SaveIcon /> : <EditIcon />}
-            </IconButton>
           </Box>
         </Grid>
         <Grid
@@ -233,13 +232,31 @@ const SingleRental = () => {
           flexDirection={'row-reverse'}
           gap={4}
         >
-          <Button
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={deleteRental}
+          <Tooltip title="Supprimer la location" arrow>
+            <Button
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={deleteRental}
+            >
+              Supprimer
+            </Button>
+          </Tooltip>
+          <Tooltip
+            arrow
+            title={
+              isEditing
+                ? 'Enregistrer les modifications'
+                : 'Modifier la location'
+            }
           >
-            Supprimer la location
-          </Button>
+            <Button
+              color={isEditing ? 'success' : 'warning'}
+              startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
+              onClick={switchEditing}
+            >
+              {isEditing ? 'enregistrer' : 'modifier'}
+            </Button>
+          </Tooltip>
           <Button
             color="primary"
             startIcon={<VisibilityIcon />}
@@ -376,6 +393,38 @@ const SingleRental = () => {
               handleChange={handleChange}
               size="small"
             />
+
+            <Grid item xs={12} display={'flex'} alignItems="center">
+              {isEditing ? (
+                <FormControlLabel
+                  sx={{ mb: 2 }}
+                  control={
+                    <Checkbox
+                      checked={rental.with_shipping}
+                      onChange={(e) => {
+                        handleChange(e.target.checked, 'with_shipping');
+                      }}
+                      name="with_shipping"
+                    />
+                  }
+                  label="Avec livraison"
+                />
+              ) : (
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  sx={{ margin: '8px 0' }}
+                >
+                  <Typography variant="subtitle1" noWrap>
+                    Avec livraison :
+                  </Typography>
+                  <Typography variant="subtitle1" sx={{ marginLeft: '10px' }}>
+                    {rental.with_shipping ? 'Oui' : 'Non'}
+                  </Typography>
+                </Box>
+              )}
+            </Grid>
+
             <SingleField
               label="Invités"
               name="guests"

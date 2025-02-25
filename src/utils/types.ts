@@ -12,6 +12,7 @@ export interface MachineRental {
   clientCity: string;
   paid: boolean;
   guests: string[];
+  with_shipping: boolean;
 }
 
 export interface MachineRentalWithMachineRented extends MachineRental {
@@ -43,7 +44,6 @@ export interface MachineRented {
   parts: MachineRentedPart[];
   maintenanceHistories: MaintenanceHistory[];
   deposit: number;
-  with_shipping: boolean;
 }
 
 export type MachineRentedWithoutRental = Omit<MachineRented, 'machineRentals'>;

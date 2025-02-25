@@ -565,35 +565,6 @@ const SingleMachine = () => {
                 'small',
               )}
             </Grid>
-            <Grid item xs={12} display={'flex'} alignItems="center">
-              {isEditing ? (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={machine.with_shipping}
-                      onChange={(e) => {
-                        handleChange(e.target.checked, 'with_shipping');
-                      }}
-                      name="with_shipping"
-                    />
-                  }
-                  label="Avec livraison"
-                />
-              ) : (
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  sx={{ margin: '8px 0' }}
-                >
-                  <Typography variant="subtitle1" noWrap>
-                    Avec livraison :
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ marginLeft: '10px' }}>
-                    {machine.with_shipping ? 'Oui' : 'Non'}
-                  </Typography>
-                </Box>
-              )}
-            </Grid>
             <SingleField
               label="Invités"
               name="guests"
@@ -672,6 +643,7 @@ const SingleMachine = () => {
                   Ajouter un entretien
                 </Button>
                 <Tooltip
+                  arrow
                   title={
                     isEditing
                       ? 'Enregistrer les modifications'
@@ -686,7 +658,7 @@ const SingleMachine = () => {
                     {isEditing ? 'enregistrer' : 'modifier'}
                   </Button>
                 </Tooltip>
-                <Tooltip title="Supprimer la machine">
+                <Tooltip arrow title="Supprimer la machine">
                   <Button
                     color="error"
                     startIcon={<DeleteIcon />}
