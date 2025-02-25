@@ -41,6 +41,7 @@ const MachineRentedTable: React.FC = () => {
     price_per_day: 0,
     guests: [],
     deposit: 0,
+    with_shipping: false,
   });
 
   const fetchData = async () => {
@@ -82,6 +83,7 @@ const MachineRentedTable: React.FC = () => {
         price_per_day: 0,
         guests: [],
         deposit: 0,
+        with_shipping: false,
       });
     } catch (error) {
       console.error("Erreur lors de l'ajout :", error);
@@ -183,6 +185,15 @@ const MachineRentedTable: React.FC = () => {
           : 'Non défini';
       },
     },
+    // {
+    //   headerName: 'Avec livraison',
+    //   field: 'with_shipping' as keyof MachineRented,
+    //   sortable: true,
+    //   filter: true,
+    //   valueFormatter: (params: { value: MachineRented['with_shipping'] }) => {
+    //     return params.value ? 'Oui' : 'Non';
+    //   },
+    // },
   ];
 
   const calculatePageSize = () => {

@@ -56,7 +56,7 @@ const MaintenanceHistory: React.FC<MaintenanceHistoryProps> = ({
                     const updatedHistories =
                       prevMachine.maintenanceHistories.map((mh) =>
                         mh.id === m.id
-                          ? { ...mh, performedAt: new Date(e!) }
+                          ? { ...mh, performedAt: new Date(e as string | Date) }
                           : mh,
                       );
 

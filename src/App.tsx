@@ -20,6 +20,7 @@ import SingleRental from './pages/SingleRental';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { GlobalDataProvider } from './contexts/GlobalDataContext';
+import Settings from './pages/Settings';
 
 const defaultTheme = 'light';
 
@@ -85,6 +86,7 @@ const App = (): JSX.Element => {
                           path="/locations/:id"
                           element={<SingleRental />}
                         />
+                        <Route path="/parametres" element={<Settings />} />
                       </Route>
                       <Route path="*" element={<NotFoundPage />} />
                     </Routes>

@@ -12,6 +12,8 @@ import {
   InputAdornment,
   MenuItem,
   TextField,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { MachineRentedCreated } from '../utils/types';
 import { MuiFileInput } from 'mui-file-input';
@@ -60,6 +62,7 @@ const validationSchema = yup.object({
   guests: yup.array().of(yup.string().email('Email invalide')),
   image: yup.mixed().required('Image de la machine est requise'),
   deposit: yup.number().required('Caution est requise'),
+  with_shipping: yup.boolean(),
 });
 
 const CreateMachineDialog = (props: {
@@ -262,6 +265,16 @@ const CreateMachineDialog = (props: {
                 ),
               }}
               fullWidth
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  name="with_shipping"
+                  checked={formik.values.with_shipping || false}
+                  onChange={formik.handleChange}
+                />
+              }
+              label="Avec livraison"
             />
             <MuiFileInput
               value={formik.values.image}

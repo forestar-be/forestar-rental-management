@@ -1,3 +1,4 @@
+import { ConfigElement } from '../components/settings/EditConfig';
 import {
   MachineRental,
   MachineRentalToCreate,
@@ -183,3 +184,22 @@ export const getAvailableParts = async (
 ): Promise<{ parts: string[] }> => {
   return await apiRequest('/rental-mngt/machine-rented/parts', 'GET', token);
 };
+
+export const fetchConfig = (token: string) =>
+  apiRequest('/rental-mngt/config', 'GET', token);
+
+export const addConfig = (
+  token: string,
+  config: { key: string; value: string },
+) => apiRequest('/rental-mngt/config', 'PUT', token, config);
+
+export const deleteConfig = (token: string, key: string) =>
+  apiRequest(`/rental-mngt/config/${key}`, 'DELETE', token);
+
+export const updateConfig = (token: string, configToUpdate: ConfigElement) =>
+  apiRequest(
+    `/rental-mngt/config/${configToUpdate.key}`,
+    'PATCH',
+    token,
+    configToUpdate,
+  );
