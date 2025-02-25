@@ -19,6 +19,8 @@ import {
   DialogTitle,
   TextField,
   Typography,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
@@ -387,6 +389,17 @@ const CreateRentalDialog = (props: {
               onClickAddGuest={() => handleAddGuest('')}
               handleEditGuestByIndex={handleEditGuestByIndex}
               handleRemoveGuest={handleRemoveGuest}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  name="with_shipping"
+                  checked={props.formik.values.with_shipping || false}
+                  onChange={props.formik.handleChange}
+                />
+              }
+              label="Avec livraison"
+              sx={{ alignSelf: 'flex-start' }}
             />
           </Box>
           <DialogActions>
