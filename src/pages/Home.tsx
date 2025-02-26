@@ -23,7 +23,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 
 const phoneRegex =
   /^(\+?[1-9]\d{0,2}[-.\s]?)?(0?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}(?:[-.\s]?\d{1,9})?)$/;
-const postalRegex = /^[0-9]{5}$/;
+const postalRegex = /^[0-9]{4,5}$/;
 
 // Validation schema
 const validationSchema = yup.object({
