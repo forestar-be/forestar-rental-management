@@ -1,4 +1,8 @@
-import { MachineRentalToCreate, MachineRentedWithImage } from '../utils/types';
+import {
+  MachineRentalToCreate,
+  MachineRentalWithMachineRented,
+  MachineRentedWithImage,
+} from '../utils/types';
 import {
   FieldConfig,
   FieldHelperProps,
@@ -28,6 +32,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import EditEmailsGuestFields from './EditEmailsGuestFields';
 import { formatPriceNumberToFrenchFormatStr } from '../utils/common.utils';
+import { calculateTotalPrice } from '../utils/rental.util';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -173,10 +178,32 @@ const CreateRentalDialog = (props: {
       </DialogTitle>
       <DialogContent>
         {props.selectedMachine && (
-          <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
-            Dépôt de garantie :{' '}
-            {formatPriceNumberToFrenchFormatStr(props.selectedMachine.deposit)}
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'row', gap: 5 }}>
+            <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
+              Dépôt de garantie :{' '}
+              {formatPriceNumberToFrenchFormatStr(
+                props.selectedMachine.deposit,
+              )}
+            </Typography>
+            <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
+              Prix par jour :{' '}
+              {formatPriceNumberToFrenchFormatStr(
+                props.selectedMachine.price_per_day,
+              )}
+            </Typography>
+            <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
+              Prix total :{' '}
+              {formatPriceNumberToFrenchFormatStr(
+                calculateTotalPrice({
+                  machineRented: {
+                    price_per_day: props.selectedMachine.price_per_day,
+                  },
+                  rentalDate: props.formik.values.rentalDate,
+                  returnDate: props.formik.values.returnDate,
+                }),
+              )}
+            </Typography>
+          </Box>
         )}
         {props.loadingCreate && (
           <Box
