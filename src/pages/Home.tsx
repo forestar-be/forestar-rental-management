@@ -83,6 +83,8 @@ const Home = (): JSX.Element => {
       returnDate: null,
       guests: [],
       with_shipping: false,
+      paid: false,
+      depositToPay: false,
     },
     validationSchema: validationSchema,
     onSubmit: async (values: MachineRentalToCreate) => {

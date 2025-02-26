@@ -58,7 +58,11 @@ const DatePickerField: React.FC<Props> = ({
     sx={{ margin: size === 'small' ? '8px 0' : '5px 0' }}
     label={label}
     format={'DD/MM/YYYY'}
-    value={value && typeof value === 'object' ? dayjs(value as Date) : null}
+    value={
+      typeof value === 'object' || typeof value === 'string'
+        ? dayjs(value as Date | string)
+        : null
+    }
     onChange={(date) => handleChange(date?.toDate() ?? new Date(), name)}
     slotProps={{
       textField: {

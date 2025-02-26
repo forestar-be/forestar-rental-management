@@ -288,6 +288,32 @@ const SingleRental = () => {
               {rental?.paid ? 'Payé' : 'Non payé'}
             </Button>
           </Tooltip>
+          <Tooltip
+            arrow
+            title={
+              rental?.depositToPay
+                ? 'Cliquer pour marquer le dépôt comme non payé'
+                : 'Cliquer pour marquer le dépôt comme payé'
+            }
+          >
+            <Button
+              color={rental?.depositToPay ? 'success' : 'warning'}
+              startIcon={
+                rental?.depositToPay ? (
+                  <CheckBoxIcon />
+                ) : (
+                  <CheckBoxOutlineBlankIcon />
+                )
+              }
+              onClick={() => {
+                if (rental) {
+                  updateRentalData({ depositToPay: !rental.depositToPay });
+                }
+              }}
+            >
+              {rental?.depositToPay ? 'Caution payée' : 'Caution non payée'}
+            </Button>
+          </Tooltip>
         </Grid>
       </Grid>
       {rental && (
