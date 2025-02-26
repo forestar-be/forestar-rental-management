@@ -56,8 +56,11 @@ const Home = (): JSX.Element => {
   const auth = useAuth();
   const theme = useTheme();
   const navigate = useNavigate();
-  const { machineRentedList, loadingMachineRentedList: loading } =
-    useGlobalData();
+  const {
+    machineRentedList,
+    loadingMachineRentedList: loading,
+    refreshMachineRentalList,
+  } = useGlobalData();
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] =
@@ -103,6 +106,7 @@ const Home = (): JSX.Element => {
         // Appel à l'API pour créer une machine louée
         await createMachineRental(selectedMachine.id, values, auth.token);
         toast.success('Location de la machine créée avec succès');
+        refreshMachineRentalList();
         handleClose(true);
       } catch (error) {
         console.error('Failed to create machine rental:', error);
