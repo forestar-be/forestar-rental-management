@@ -10,13 +10,13 @@ import { AG_GRID_LOCALE_FR } from '@ag-grid-community/locale';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import '../styles/MachineRentedTable.css';
-import { addMachineRented, getAllMachineRented } from '../utils/api';
+import { addMachineRented } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { MachineRented, MachineRentedCreated } from '../utils/types';
 import { TYPE_VALUE_ASSOCIATION } from '../config/constants';
 import { toast } from 'react-toastify';
-import { compressImage } from '../utils/common.utils';
 import CreateMachineDialog from '../components/CreateMachineDialog';
+import { useGlobalData } from '../contexts/GlobalDataContext';
 
 const rowHeight = 40;
 
@@ -25,12 +25,13 @@ const MachineRentedTable: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const gridRef = React.createRef<AgGridReact>();
-  const [machineRentedList, setMachineRentedList] = useState<MachineRented[]>(
-    [],
-  );
+  const {
+    machineRentedList,
+    refreshMachineRentedList,
+    loadingMachineRentedList,
+  } = useGlobalData();
   const [loadingImage, setLoadingImage] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [initialValues, setInitialValues] = useState<MachineRentedCreated>({
@@ -43,23 +44,6 @@ const MachineRentedTable: React.FC = () => {
     deposit: 0,
   });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const data: MachineRented[] = await getAllMachineRented(auth.token);
-      setMachineRentedList(data);
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      alert("Une erreur s'est produite lors de la récupération des données");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   useEffect(() => {
     calculatePageSize();
   }, [machineRentedList]);
@@ -71,8 +55,8 @@ const MachineRentedTable: React.FC = () => {
       setLoadingCreate(true);
       // remove empty guests
       values.guests = values.guests.filter((guest) => !!guest);
-      const addedMachine = await addMachineRented(values, auth.token);
-      setMachineRentedList((prev) => [...prev, addedMachine]);
+      await addMachineRented(values, auth.token);
+      await refreshMachineRentedList();
       setIsModalOpen(false);
       setInitialValues({
         name: '',
@@ -237,7 +221,7 @@ const MachineRentedTable: React.FC = () => {
         <AgGridReact
           rowHeight={rowHeight}
           ref={gridRef}
-          rowData={loading ? [] : machineRentedList}
+          rowData={loadingMachineRentedList ? [] : machineRentedList}
           columnDefs={columns}
           pagination={true}
           paginationPageSize={paginationPageSize}
@@ -249,9 +233,9 @@ const MachineRentedTable: React.FC = () => {
           overlayLoadingTemplate={
             '<span class="ag-overlay-loading-center">Chargement...</span>'
           }
-          loadingOverlayComponentParams={{ loading }}
+          loadingOverlayComponentParams={{ loading: loadingMachineRentedList }}
           onGridReady={(params) => {
-            if (loading) {
+            if (loadingMachineRentedList) {
               params.api.showLoadingOverlay();
             } else {
               params.api.hideOverlay();
