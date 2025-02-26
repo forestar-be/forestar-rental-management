@@ -28,6 +28,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import { notifyLoading } from '../utils/notifications';
+import { calculateTotalPrice } from '../utils/rental.util';
 
 const SingleRental = () => {
   const theme = useTheme();
@@ -143,21 +144,7 @@ const SingleRental = () => {
   }, [id, auth.token]);
 
   const totalPrice = useMemo(() => {
-    if (
-      rental?.machineRented?.price_per_day &&
-      rental?.rentalDate &&
-      rental?.returnDate
-    ) {
-      const { price_per_day } = rental.machineRented;
-      return (
-        (price_per_day *
-          (new Date(rental.returnDate).getTime() -
-            new Date(rental.rentalDate).getTime())) /
-        (1000 * 60 * 60 * 24)
-      );
-    }
-
-    return 0;
+    return calculateTotalPrice(rental);
   }, [rental?.machineRented, rental?.rentalDate, rental?.returnDate]);
 
   const togglePaidStatus = useCallback(() => {
