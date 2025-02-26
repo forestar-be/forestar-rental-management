@@ -13,6 +13,7 @@ export interface MachineRental {
   paid: boolean;
   guests: string[];
   with_shipping: boolean;
+  depositToPay: boolean;
 }
 
 export interface MachineRentalWithMachineRented extends MachineRental {
@@ -21,7 +22,7 @@ export interface MachineRentalWithMachineRented extends MachineRental {
 
 export type MachineRentalToCreate = Omit<
   MachineRental,
-  'id' | 'machineRentedId' | 'paid'
+  'id' | 'machineRentedId'
 >;
 
 export interface MaintenanceHistory {

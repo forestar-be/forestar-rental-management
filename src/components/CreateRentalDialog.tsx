@@ -390,17 +390,41 @@ const CreateRentalDialog = (props: {
               handleEditGuestByIndex={handleEditGuestByIndex}
               handleRemoveGuest={handleRemoveGuest}
             />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  name="with_shipping"
-                  checked={props.formik.values.with_shipping || false}
-                  onChange={props.formik.handleChange}
-                />
-              }
-              label="Avec livraison"
-              sx={{ alignSelf: 'flex-start' }}
-            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="with_shipping"
+                    checked={props.formik.values.with_shipping || false}
+                    onChange={props.formik.handleChange}
+                  />
+                }
+                label="Avec livraison"
+                sx={{ alignSelf: 'flex-start' }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="paid"
+                    checked={props.formik.values.paid || false}
+                    onChange={props.formik.handleChange}
+                  />
+                }
+                label="Payé"
+                sx={{ alignSelf: 'flex-start' }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="depositToPay"
+                    checked={props.formik.values.depositToPay || false}
+                    onChange={props.formik.handleChange}
+                  />
+                }
+                label="Caution à payer"
+                sx={{ alignSelf: 'flex-start' }}
+              />
+            </Box>
           </Box>
           <DialogActions>
             <Button onClick={props.onClose} color="secondary">
