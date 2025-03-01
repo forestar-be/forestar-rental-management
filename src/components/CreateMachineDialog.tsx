@@ -40,25 +40,27 @@ const validationSchema = yup.object({
   nb_day_before_maintenance: yup
     .number()
     .nullable()
-    .min(1, 'Nb jours avant maintenance doit être supérieur à 0')
     .when('maintenance_type', ([maintenance_type], schema) =>
       maintenance_type === 'BY_DAY'
-        ? schema.required('Nb jours avant maintenance est requis')
-        : schema,
+        ? schema
+            .min(1, 'Nb jours avant maintenance doit être supérieur à 0')
+            .required('Nb jours avant maintenance est requis')
+        : schema.optional(),
     ),
   nb_rental_before_maintenance: yup
     .number()
     .nullable()
-    .min(1, 'Nb locations avant maintenance doit être supérieur à 0')
     .when('maintenance_type', ([maintenance_type], schema) =>
       maintenance_type === 'BY_NB_RENTAL'
-        ? schema.required('Nb locations avant maintenance est requis')
-        : schema,
+        ? schema
+            .min(1, 'Nb locations avant maintenance doit être supérieur à 0')
+            .required('Nb locations avant maintenance est requis')
+        : schema.optional(),
     ),
   price_per_day: yup
     .number()
-    .required('Prix par jour est requis')
-    .min(1, 'Prix par jour doit être supérieur à 0'),
+    .min(1, 'Prix par jour doit être supérieur à 0')
+    .required('Prix par jour est requis'),
   guests: yup.array().of(yup.string().email('Email invalide')),
   image: yup.mixed().required('Image de la machine est requise'),
   deposit: yup.number().required('Caution est requise'),

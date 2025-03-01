@@ -55,6 +55,13 @@ const MachineRentedTable: React.FC = () => {
       setLoadingCreate(true);
       // remove empty guests
       values.guests = values.guests.filter((guest) => !!guest);
+
+      if (values.maintenance_type === 'BY_NB_RENTAL') {
+        values.nb_day_before_maintenance = null;
+      } else {
+        values.nb_rental_before_maintenance = null;
+      }
+
       await addMachineRented(values, auth.token);
       await refreshMachineRentedList();
       setIsModalOpen(false);
