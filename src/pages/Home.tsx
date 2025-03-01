@@ -1,5 +1,9 @@
 import '../styles/Home.css';
-import { MachineRentalToCreate, MachineRentedWithImage } from '../utils/types';
+import {
+  MachineRental,
+  MachineRentalToCreate,
+  MachineRentedSimpleWithImage,
+} from '../utils/types';
 import { createMachineRental } from '../utils/api';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../hooks/AuthProvider';
@@ -60,15 +64,19 @@ const Home = (): JSX.Element => {
     machineRentedList,
     loadingMachineRentedList: loading,
     refreshMachineRentalList,
+    refreshMachineRentedList,
   } = useGlobalData();
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] =
-    useState<MachineRentedWithImage | null>(null);
+    useState<MachineRentedSimpleWithImage | null>(null);
   const [filterText, setFilterText] = useState<string>('');
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const handleClickOpen = (machine: MachineRentedWithImage) => {
+  const handleClickOpen = (machine: MachineRentedSimpleWithImage) => {
+    machine.forbiddenRentalDays = machine.forbiddenRentalDays.map(
+      (d) => new Date(d),
+    );
     setSelectedMachine(machine);
     setOpen(true);
   };
@@ -104,10 +112,18 @@ const Home = (): JSX.Element => {
         values.guests = values.guests.filter((guest) => !!guest);
         setLoadingCreate(true);
         // Appel à l'API pour créer une machine louée
-        await createMachineRental(selectedMachine.id, values, auth.token);
-        toast.success('Location de la machine créée avec succès');
-        refreshMachineRentalList();
-        handleClose(true);
+        const result: MachineRental | { errorKey: string; message: string } =
+          await createMachineRental(selectedMachine.id, values, auth.token);
+        if ('errorKey' in result) {
+          if (!result.message) {
+            throw new Error(result.errorKey);
+          }
+          toast.error(result.message);
+        } else {
+          refreshMachineRentalList();
+          refreshMachineRentedList();
+          handleClose(true);
+        }
       } catch (error) {
         console.error('Failed to create machine rental:', error);
         toast.error(

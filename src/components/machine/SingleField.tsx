@@ -33,6 +33,7 @@ interface Props {
   size?: 'small' | 'medium';
   showLabelWhenNotEditing?: boolean;
   noValueDisplay?: string;
+  shouldDisableDate?: (date: dayjs.Dayjs) => boolean;
 }
 
 const DatePickerField: React.FC<Props> = ({
@@ -52,8 +53,10 @@ const DatePickerField: React.FC<Props> = ({
   handleEditEmailGuestByIndex,
   handleAddEmailGuest,
   handleRemoveEmailGuest,
+  shouldDisableDate,
 }) => (
   <DatePicker
+    shouldDisableDate={shouldDisableDate}
     timezone={'Europe/Paris'}
     sx={{ margin: size === 'small' ? '8px 0' : '5px 0' }}
     label={label}
@@ -144,6 +147,7 @@ const SingleField: React.FC<Props> = ({
   size,
   showLabelWhenNotEditing = true,
   noValueDisplay = '-',
+  shouldDisableDate,
 }) => {
   useEffect(() => {
     if (
@@ -164,6 +168,7 @@ const SingleField: React.FC<Props> = ({
       {isEditing ? (
         valueType === 'date' ? (
           <DatePickerField
+            shouldDisableDate={shouldDisableDate}
             label={label}
             name={name}
             value={value}

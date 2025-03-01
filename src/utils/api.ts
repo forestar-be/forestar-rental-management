@@ -18,6 +18,7 @@ const apiRequest = async (
   body?: any,
   additionalHeaders: HeadersInit = { 'Content-Type': 'application/json' },
   stringifyBody: boolean = true,
+  throwError: boolean = true,
 ) => {
   const headers: HeadersInit = {
     Authorization: `Bearer ${token}`,
@@ -33,13 +34,22 @@ const apiRequest = async (
     options.body = stringifyBody ? JSON.stringify(body) : body;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, options);
+  const response: Response = await fetch(`${API_URL}${endpoint}`, options);
 
-  if (!response.ok) {
+  let data;
+
+  try {
+    data = await response.json();
+  } catch (error) {
+    console.warn('Error parsing JSON of response', response, error);
+  }
+
+  if ((throwError && !response.ok) || !data) {
+    console.error(`${response.statusText} ${response.status}`, data);
     throw new Error(`${response.statusText} ${response.status}`);
   }
 
-  return await response.json();
+  return data;
 };
 
 export const getAllMachineRented = async (
@@ -130,12 +140,15 @@ export const createMachineRental = async (
   machineId: string,
   rental: MachineRentalToCreate,
   token: string,
-) => {
+): Promise<MachineRental | { errorKey: string; message: string }> => {
   return await apiRequest(
     `/rental-mngt/machine-rented/${machineId}/rental`,
     'PUT',
     token,
     rental,
+    undefined,
+    undefined,
+    false,
   );
 };
 
@@ -165,14 +178,28 @@ export const updateMachineRental = async (
   id: string,
   data: Partial<MachineRental>,
   token: string,
-): Promise<MachineRental> => {
+): Promise<
+  | MachineRental
+  | {
+      errorKey: string;
+      message: string;
+    }
+> => {
   const response = await apiRequest(
     `/rental-mngt/machine-rental/${id}`,
     'PATCH',
     token,
     data,
+    undefined,
+    undefined,
+    false,
   );
-  return response as MachineRental;
+  return response as
+    | MachineRental
+    | {
+        errorKey: string;
+        message: string;
+      };
 };
 
 export async function getKnownEmails(token: string): Promise<string[]> {

@@ -1,7 +1,7 @@
 import {
   MachineRentalToCreate,
   MachineRentalWithMachineRented,
-  MachineRentedWithImage,
+  MachineRentedSimpleWithImage,
 } from '../utils/types';
 import {
   FieldConfig,
@@ -38,7 +38,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const CreateRentalDialog = (props: {
-  selectedMachine: MachineRentedWithImage | null;
+  selectedMachine: MachineRentedSimpleWithImage | null;
   open: boolean;
   onClose: () => void;
   loadingCreate: boolean;
@@ -357,6 +357,11 @@ const CreateRentalDialog = (props: {
               }
             />
             <DatePicker
+              shouldDisableDate={(date) =>
+                props.selectedMachine?.forbiddenRentalDays?.some(
+                  (forbiddenDate) => dayjs(forbiddenDate).isSame(date, 'day'),
+                ) ?? false
+              }
               timezone={'Europe/Paris'}
               label="Date de location"
               format={'DD/MM/YYYY'}
@@ -382,6 +387,11 @@ const CreateRentalDialog = (props: {
               }}
             />
             <DatePicker
+              shouldDisableDate={(date) =>
+                props.selectedMachine?.forbiddenRentalDays?.some(
+                  (forbiddenDate) => dayjs(forbiddenDate).isSame(date, 'day'),
+                ) ?? false
+              }
               timezone={'Europe/Paris'}
               label="Date de retour"
               value={

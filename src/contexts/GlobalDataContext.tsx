@@ -13,7 +13,7 @@ import {
 import { useAuth } from '../hooks/AuthProvider';
 import { notifyError } from '../utils/notifications';
 import {
-  MachineRentedWithImage,
+  MachineRentedSimpleWithImage,
   MachineRentalWithMachineRented,
 } from '../utils/types';
 
@@ -21,7 +21,7 @@ import {
 type Action =
   | { type: 'SET_EMAILS'; payload: string[] }
   | { type: 'CLEAR_EMAILS' }
-  | { type: 'SET_MACHINE_RENTED_LIST'; payload: MachineRentedWithImage[] }
+  | { type: 'SET_MACHINE_RENTED_LIST'; payload: MachineRentedSimpleWithImage[] }
   | { type: 'SET_LOADING_MACHINE_RENTED_LIST'; payload: boolean }
   | {
       type: 'SET_MACHINE_RENTAL_LIST';
@@ -31,7 +31,7 @@ type Action =
 // The state type
 interface GlobalDataState {
   knownEmails: string[];
-  machineRentedList: MachineRentedWithImage[];
+  machineRentedList: MachineRentedSimpleWithImage[];
   loadingMachineRentedList: boolean;
   machineRentalList: MachineRentalWithMachineRented[];
 }
