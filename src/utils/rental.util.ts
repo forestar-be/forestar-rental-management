@@ -5,7 +5,9 @@ export const calculateTotalPrice = (
     };
     rentalDate: Date | null;
     returnDate: Date | null;
+    with_shipping: boolean;
   } | null,
+  priceShipping: number,
 ) => {
   if (
     rental?.machineRented?.price_per_day &&
@@ -18,7 +20,8 @@ export const calculateTotalPrice = (
         (new Date(rental.returnDate).getTime() -
           new Date(rental.rentalDate).getTime())) /
         (1000 * 60 * 60 * 24) +
-      1
+      1 +
+      (rental.with_shipping ? priceShipping : 0)
     );
   }
 
