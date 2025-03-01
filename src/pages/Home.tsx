@@ -21,7 +21,13 @@ import { useFormik } from 'formik';
 import * as yup from 'yup';
 import CreateRentalDialog from '../components/CreateRentalDialog';
 import MachineRentedImageItem from '../components/MachineRentedImageItem';
-import { useGlobalData } from '../contexts/GlobalDataContext';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchMachineRental } from '../store/slices/machineRentalSlice';
+import { fetchMachineRented } from '../store/slices/machineRentedSlice';
+import {
+  getMachineRentedList,
+  getMachineRentedLoading,
+} from '../store/selectors';
 import SearchIcon from '@mui/icons-material/Search';
 import ConfirmDialog from '../components/ConfirmDialog';
 
@@ -60,12 +66,23 @@ const Home = (): JSX.Element => {
   const auth = useAuth();
   const theme = useTheme();
   const navigate = useNavigate();
-  const {
-    machineRentedList,
-    loadingMachineRentedList: loading,
-    refreshMachineRentalList,
-    refreshMachineRentedList,
-  } = useGlobalData();
+
+  const dispatch = useAppDispatch();
+  const machineRentedList = useAppSelector(getMachineRentedList);
+  const loadingMachineRentedList = useAppSelector(getMachineRentedLoading);
+
+  const refreshMachineRentalList = () => {
+    if (auth.token) {
+      dispatch(fetchMachineRental(auth.token));
+    }
+  };
+
+  const refreshMachineRentedList = () => {
+    if (auth.token) {
+      dispatch(fetchMachineRented(auth.token));
+    }
+  };
+
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] =
@@ -74,10 +91,11 @@ const Home = (): JSX.Element => {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleClickOpen = (machine: MachineRentedSimpleWithImage) => {
-    machine.forbiddenRentalDays = machine.forbiddenRentalDays.map(
-      (d) => new Date(d),
-    );
-    setSelectedMachine(machine);
+    const machineCopy = {
+      ...machine,
+      forbiddenRentalDays: machine.forbiddenRentalDays.map((d) => new Date(d)),
+    };
+    setSelectedMachine(machineCopy);
     setOpen(true);
   };
 
@@ -188,7 +206,7 @@ const Home = (): JSX.Element => {
           }}
         />
       </Box>
-      {loading ? (
+      {loadingMachineRentedList ? (
         <Box
           display="flex"
           justifyContent="center"

@@ -4,10 +4,15 @@ import 'ag-grid-community/styles/ag-theme-quartz.css';
 import { Paper, Typography } from '@mui/material';
 import '../styles/MachineRentalTable.css';
 import MachineRentalGrid from '../components/MachineRentalGrid';
-import { useGlobalData } from '../contexts/GlobalDataContext';
+import { useAppSelector } from '../store/hooks';
+import {
+  getMachineRentalList,
+  getMachineRentedLoading,
+} from '../store/selectors';
 
 const MachineRentalTable: React.FC = () => {
-  const { machineRentalList, loadingMachineRentedList } = useGlobalData();
+  const machineRentalList = useAppSelector(getMachineRentalList);
+  const loadingMachineRentedList = useAppSelector(getMachineRentedLoading);
 
   return (
     <Paper

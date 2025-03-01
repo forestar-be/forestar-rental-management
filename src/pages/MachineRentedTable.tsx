@@ -16,7 +16,12 @@ import { MachineRented, MachineRentedCreated } from '../utils/types';
 import { TYPE_VALUE_ASSOCIATION } from '../config/constants';
 import { toast } from 'react-toastify';
 import CreateMachineDialog from '../components/CreateMachineDialog';
-import { useGlobalData } from '../contexts/GlobalDataContext';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchMachineRented } from '../store/slices/machineRentedSlice';
+import {
+  getMachineRentedList,
+  getMachineRentedLoading,
+} from '../store/selectors';
 
 const rowHeight = 40;
 
@@ -34,11 +39,17 @@ const MachineRentedTable: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const gridRef = React.createRef<AgGridReact>();
-  const {
-    machineRentedList,
-    refreshMachineRentedList,
-    loadingMachineRentedList,
-  } = useGlobalData();
+
+  const dispatch = useAppDispatch();
+  const machineRentedList = useAppSelector(getMachineRentedList);
+  const loadingMachineRentedList = useAppSelector(getMachineRentedLoading);
+
+  const refreshMachineRentedList = useCallback(() => {
+    if (auth.token) {
+      dispatch(fetchMachineRented(auth.token));
+    }
+  }, [dispatch, auth.token]);
+
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);

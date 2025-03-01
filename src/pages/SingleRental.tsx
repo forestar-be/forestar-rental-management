@@ -32,6 +32,8 @@ import { calculateTotalPrice } from '../utils/rental.util';
 import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash';
 import { getKeys, isDifferent } from '../utils/common.utils';
+import { useSelector } from 'react-redux';
+import { getPriceShipping } from '../store/selectors/configSelectors';
 
 const SingleRental = () => {
   const theme = useTheme();
@@ -47,6 +49,7 @@ const SingleRental = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [notificationUpdating, setNotificationUpdating] =
     useState<null | ReturnType<typeof notifyLoading>>(null);
+  const priceShipping = useSelector(getPriceShipping);
 
   const updateRentalData = useCallback(
     (updatedData: Partial<MachineRental>) => {
@@ -166,8 +169,14 @@ const SingleRental = () => {
   }, [id, auth.token]);
 
   const totalPrice = useMemo(() => {
-    return calculateTotalPrice(rental);
-  }, [rental?.machineRented, rental?.rentalDate, rental?.returnDate]);
+    return calculateTotalPrice(rental, priceShipping);
+  }, [
+    rental?.machineRented,
+    rental?.rentalDate,
+    rental?.returnDate,
+    priceShipping,
+    rental?.with_shipping,
+  ]);
 
   const togglePaidStatus = useCallback(() => {
     if (rental) {

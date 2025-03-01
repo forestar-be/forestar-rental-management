@@ -33,6 +33,8 @@ import timezone from 'dayjs/plugin/timezone';
 import EditEmailsGuestFields from './EditEmailsGuestFields';
 import { formatPriceNumberToFrenchFormatStr } from '../utils/common.utils';
 import { calculateTotalPrice } from '../utils/rental.util';
+import { useSelector } from 'react-redux';
+import { getPriceShipping } from '../store/selectors/configSelectors';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -127,6 +129,8 @@ const CreateRentalDialog = (props: {
     date: dayjs.Dayjs | null,
   ) => Promise<FormikErrors<MachineRentalToCreate>> | Promise<void>;
 }) => {
+  const priceShipping = useSelector(getPriceShipping);
+
   const handleAddGuest = useCallback(
     (email: string) => {
       if (!props.formik.values.guests.includes(email)) {
@@ -194,13 +198,17 @@ const CreateRentalDialog = (props: {
             <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
               Prix total :{' '}
               {formatPriceNumberToFrenchFormatStr(
-                calculateTotalPrice({
-                  machineRented: {
-                    price_per_day: props.selectedMachine.price_per_day,
+                calculateTotalPrice(
+                  {
+                    machineRented: {
+                      price_per_day: props.selectedMachine.price_per_day,
+                    },
+                    rentalDate: props.formik.values.rentalDate,
+                    returnDate: props.formik.values.returnDate,
+                    with_shipping: props.formik.values.with_shipping,
                   },
-                  rentalDate: props.formik.values.rentalDate,
-                  returnDate: props.formik.values.returnDate,
-                }),
+                  priceShipping,
+                ),
               )}
             </Typography>
           </Box>

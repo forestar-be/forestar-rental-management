@@ -75,3 +75,8 @@ export type MachineRentedUpdatedData = Partial<MachineRented>;
 export interface MachineRentedPart {
   partName: string;
 }
+
+export interface ConfigElement {
+  key: string;
+  value: string;
+}

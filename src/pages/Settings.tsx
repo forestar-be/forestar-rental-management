@@ -1,11 +1,18 @@
-import { Box } from '@mui/material';
+import { Box, Paper } from '@mui/material';
 import EditConfig from '../components/settings/EditConfig';
 
 const Settings = (): JSX.Element => {
   return (
-    <Box sx={{ padding: 4, height: '100%', position: 'relative' }}>
+    <Paper
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+      id="settingsPage"
+    >
       <EditConfig />
-    </Box>
+    </Paper>
   );
 };
 
