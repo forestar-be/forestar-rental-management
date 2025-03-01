@@ -17,7 +17,8 @@ export const calculateTotalPrice = (
       (price_per_day *
         (new Date(rental.returnDate).getTime() -
           new Date(rental.rentalDate).getTime())) /
-      (1000 * 60 * 60 * 24)
+        (1000 * 60 * 60 * 24) +
+      1
     );
   }
 

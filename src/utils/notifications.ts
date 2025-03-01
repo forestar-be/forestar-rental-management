@@ -151,7 +151,7 @@ class NotifyLoading {
   success(successMessage: ToastContent) {
     toast.update(this.loadingId, {
       ...NOTIFICATION_DEFAULT_CONFIG,
-      render: this.successMessage || successMessage,
+      render: successMessage || this.successMessage,
       type: 'success',
       isLoading: false,
     });
@@ -164,7 +164,7 @@ class NotifyLoading {
   error(errorMessage: ToastContent) {
     toast.update(this.loadingId, {
       ...NOTIFICATION_DEFAULT_CONFIG,
-      render: this.errorMessage || errorMessage,
+      render: errorMessage || this.errorMessage,
       type: 'error',
       isLoading: false,
     });
@@ -177,7 +177,7 @@ class NotifyLoading {
   warning(warningMessage: ToastContent) {
     toast.update(this.loadingId, {
       ...NOTIFICATION_DEFAULT_CONFIG,
-      render: this.warningMessage || warningMessage,
+      render: warningMessage || this.warningMessage,
       type: 'warning',
       isLoading: false,
     });

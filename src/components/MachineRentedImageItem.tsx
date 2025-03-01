@@ -1,5 +1,5 @@
 import React, { ReactElement, useEffect, useState } from 'react';
-import { MachineRentedWithImage } from '../utils/types';
+import { MachineRentedSimpleWithImage } from '../utils/types';
 import {
   Box,
   CircularProgress,
@@ -8,8 +8,8 @@ import {
 } from '@mui/material';
 
 const MachineRentedImageItem: React.FC<{
-  item: MachineRentedWithImage;
-  onClick: ((item: MachineRentedWithImage) => void) | null;
+  item: MachineRentedSimpleWithImage;
+  onClick: ((item: MachineRentedSimpleWithImage) => void) | null;
   showItemBar?: boolean;
   children?: ReactElement<any, any> | undefined;
 }> = ({ children, item, onClick, showItemBar = true }) => {

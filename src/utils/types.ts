@@ -45,6 +45,7 @@ export interface MachineRented {
   parts: MachineRentedPart[];
   maintenanceHistories: MaintenanceHistory[];
   deposit: number;
+  forbiddenRentalDays: Date[];
 }
 
 export type MachineRentedWithoutRental = Omit<MachineRented, 'machineRentals'>;
@@ -52,6 +53,11 @@ export type MachineRentedWithoutRental = Omit<MachineRented, 'machineRentals'>;
 export interface MachineRentedWithImage extends MachineRented {
   imageUrl: string;
 }
+
+export type MachineRentedSimpleWithImage = Omit<
+  MachineRentedWithImage,
+  'machineRentals' | 'maintenanceHistories' | 'parts'
+>;
 
 export type MachineRentedCreated = Omit<
   MachineRented,
@@ -61,6 +67,7 @@ export type MachineRentedCreated = Omit<
   | 'last_maintenance_date'
   | 'maintenanceHistories'
   | 'parts'
+  | 'forbiddenRentalDays'
 >;
 
 export type MachineRentedUpdatedData = Partial<MachineRented>;

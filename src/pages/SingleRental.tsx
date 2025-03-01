@@ -29,6 +29,9 @@ import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import { notifyLoading } from '../utils/notifications';
 import { calculateTotalPrice } from '../utils/rental.util';
+import dayjs from 'dayjs';
+import { cloneDeep } from 'lodash';
+import { getKeys, isDifferent } from '../utils/common.utils';
 
 const SingleRental = () => {
   const theme = useTheme();
@@ -56,15 +59,28 @@ const SingleRental = () => {
         );
         setNotificationUpdating(newNotificationUpdating);
         updateMachineRental(id!, updatedData, auth.token)
-          .then((updatedRental: MachineRental) => {
-            newNotificationUpdating.success(null);
-            const newRental = {
-              ...updatedRental,
-              machineRented: rental.machineRented,
-            };
-            setRental(newRental);
-            setInitialRental(newRental);
-          })
+          .then(
+            (
+              updatedRental:
+                | MachineRental
+                | {
+                    errorKey: string;
+                    message: string;
+                  },
+            ) => {
+              if ('errorKey' in updatedRental) {
+                newNotificationUpdating.error(updatedRental.message);
+                return;
+              }
+              newNotificationUpdating.success(null);
+              const newRental = {
+                ...updatedRental,
+                machineRented: rental.machineRented,
+              };
+              setRental(newRental);
+              setInitialRental(cloneDeep(newRental));
+            },
+          )
           .catch((error: Error) => {
             newNotificationUpdating.error(
               `Une erreur s'est produite lors de la mise à jour de la location : ${error.message}`,
@@ -78,18 +94,20 @@ const SingleRental = () => {
 
   const switchEditing = useCallback(() => {
     if (isEditing && initialRental && rental) {
-      const updatedData = Object.keys(rental).reduce(
-        (acc: any, key: string) => {
-          if (
-            (rental as Record<string, any>)[key] !==
-            (initialRental as Record<string, any>)[key]
-          ) {
-            acc[key] = (rental as Record<string, any>)[key];
-          }
-          return acc;
-        },
-        {},
-      ) as Partial<MachineRental>;
+      const updatedData: Record<keyof MachineRentalWithMachineRented, any> =
+        getKeys(rental).reduce(
+          (acc: any, key: keyof MachineRentalWithMachineRented) => {
+            if (key === 'machineRented') {
+              return acc;
+            }
+
+            if (isDifferent(rental[key], initialRental[key])) {
+              acc[key] = rental[key];
+            }
+            return acc;
+          },
+          {},
+        );
 
       updateRentalData(updatedData);
     }
@@ -131,7 +149,11 @@ const SingleRental = () => {
     const fetchData = async () => {
       try {
         const fetchedRental = await fetchMachineRentalById(id, auth.token);
-        setInitialRental(fetchedRental);
+        fetchedRental.machineRented.forbiddenRentalDays =
+          fetchedRental.machineRented.forbiddenRentalDays.map(
+            (date) => new Date(date),
+          );
+        setInitialRental(cloneDeep(fetchedRental));
         setRental(fetchedRental);
       } catch (error) {
         console.error('Erreur lors du chargement de la location :', error);
@@ -196,6 +218,27 @@ const SingleRental = () => {
       });
     },
     [],
+  );
+
+  const shouldDisableDate = useCallback(
+    (date: dayjs.Dayjs) => {
+      if (!rental || !date) return false;
+
+      return rental.machineRented.forbiddenRentalDays.some((forbiddenDate) => {
+        const rentalDate = dayjs(rental.rentalDate);
+        const returnDate = dayjs(rental.returnDate);
+        const forbiddenDay = dayjs(forbiddenDate);
+        const isSameDay = forbiddenDay.isSame(date, 'day');
+        const isWithinRentalPeriod =
+          (forbiddenDay.isAfter(rentalDate) &&
+            forbiddenDay.isBefore(returnDate)) ||
+          forbiddenDay.isSame(rentalDate, 'day') ||
+          forbiddenDay.isSame(returnDate, 'day');
+
+        return isSameDay && !isWithinRentalPeriod;
+      });
+    },
+    [rental],
   );
 
   if (loading) {
@@ -316,6 +359,7 @@ const SingleRental = () => {
               xs={12}
               handleChange={handleChange}
               size="small"
+              shouldDisableDate={shouldDisableDate}
             />
             <SingleField
               label="Date de retour"
@@ -326,6 +370,7 @@ const SingleRental = () => {
               xs={12}
               handleChange={handleChange}
               size="small"
+              shouldDisableDate={shouldDisableDate}
             />
             <SingleField
               label="Prix total"

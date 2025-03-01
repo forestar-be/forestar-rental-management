@@ -135,10 +135,10 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
     const element = document.getElementById('machine-rental-table');
     const footer = document.querySelector('.ag-paging-panel');
     const header = document.querySelector('.ag-header-viewport');
-    if (element && footer && header) {
+    if (element) {
       const elementHeight = element.clientHeight;
-      const footerHeight = footer.clientHeight;
-      const headerHeight = header.clientHeight;
+      const footerHeight = footer?.clientHeight ?? 48;
+      const headerHeight = header?.clientHeight ?? 48;
       const newPageSize = Math.floor(
         (elementHeight - headerHeight - footerHeight) / rowHeight,
       );

@@ -118,8 +118,6 @@ const CreateMachineDialog = (props: {
     [formik],
   );
 
-  console.log(formik);
-
   return (
     <Dialog open={props.open} onClose={props.onClose} fullWidth maxWidth="lg">
       <DialogTitle>Ajouter une machine</DialogTitle>

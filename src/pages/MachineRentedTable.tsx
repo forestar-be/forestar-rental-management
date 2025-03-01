@@ -30,7 +30,6 @@ const MachineRentedTable: React.FC = () => {
     refreshMachineRentedList,
     loadingMachineRentedList,
   } = useGlobalData();
-  const [loadingImage, setLoadingImage] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -176,20 +175,20 @@ const MachineRentedTable: React.FC = () => {
     },
   ];
 
-  const calculatePageSize = () => {
+  const calculatePageSize = useCallback(() => {
     const element = document.getElementById('machine-repairs-table');
     const footer = document.querySelector('.ag-paging-panel');
     const header = document.querySelector('.ag-header-viewport');
-    if (element && footer && header) {
+    if (element) {
       const elementHeight = element.clientHeight;
-      const footerHeight = footer.clientHeight;
-      const headerHeight = header.clientHeight;
+      const footerHeight = footer?.clientHeight ?? 48;
+      const headerHeight = header?.clientHeight ?? 48;
       const newPageSize = Math.floor(
         (elementHeight - headerHeight - footerHeight) / rowHeight,
       );
       setPaginationPageSize(newPageSize);
     }
-  };
+  }, [rowHeight]);
 
   useEffect(() => {
     window.addEventListener('resize', calculatePageSize);
