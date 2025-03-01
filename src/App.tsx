@@ -19,7 +19,9 @@ import MachineRentalTable from './pages/MachineRentalTable';
 import SingleRental from './pages/SingleRental';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { GlobalDataProvider } from './contexts/GlobalDataContext';
+import { Provider as ReduxProvider } from 'react-redux';
+import store from './store';
+import { StoreInitializer } from './store/initializer';
 import Settings from './pages/Settings';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -65,7 +67,8 @@ const App = (): JSX.Element => {
           <CssBaseline />
           <BrowserRouter>
             <AuthProvider>
-              <GlobalDataProvider>
+              <ReduxProvider store={store}>
+                <StoreInitializer />
                 <LocalizationProvider
                   dateAdapter={AdapterDayjs}
                   adapterLocale={'fr'}
@@ -98,7 +101,7 @@ const App = (): JSX.Element => {
                     </Routes>
                   </Layout>
                 </LocalizationProvider>
-              </GlobalDataProvider>
+              </ReduxProvider>
             </AuthProvider>
           </BrowserRouter>
         </ThemeProvider>

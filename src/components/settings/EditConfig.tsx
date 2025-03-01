@@ -1,4 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
@@ -14,25 +20,47 @@ import {
 import { useAuth } from '../../hooks/AuthProvider';
 import { useTheme } from '@mui/material/styles';
 import { toast } from 'react-toastify';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
-  addConfig,
-  deleteConfig,
-  fetchConfig,
-  updateConfig,
-} from '../../utils/api';
-
-export type ConfigElement = {
-  key: string;
-  value: string;
-};
-
-type Config = ConfigElement[];
+  fetchConfigData,
+  addConfigElement as addConfigElementAction,
+  updateConfigElement as updateConfigElementAction,
+  deleteConfigElement as deleteConfigElementAction,
+} from '../../store/slices/configSlice';
+import { getConfig, getConfigLoading } from '../../store/selectors';
+import { ConfigElement } from '../../utils/types';
+import type { ColDef } from 'ag-grid-community/dist/types/core/entities/colDef';
+import { AG_GRID_LOCALE_FR } from '@ag-grid-community/locale';
 
 interface EditConfigProps {}
 
 const EditConfig: React.FC<EditConfigProps> = ({}) => {
-  const auth = useAuth();
-  const [config, setConfig] = useState<Config>([]);
+  const { token } = useAuth();
+
+  const dispatch = useAppDispatch();
+  const config = useAppSelector(getConfig);
+  const loadingConfig = useAppSelector(getConfigLoading);
+
+  const addConfigElement = async (configElement: ConfigElement) => {
+    if (token) {
+      await dispatch(addConfigElementAction({ token, configElement })).unwrap();
+    }
+  };
+
+  const updateConfigElement = async (configElement: ConfigElement) => {
+    if (token) {
+      await dispatch(
+        updateConfigElementAction({ token, configElement }),
+      ).unwrap();
+    }
+  };
+
+  const deleteConfigElement = async (key: string) => {
+    if (token) {
+      await dispatch(deleteConfigElementAction({ token, key })).unwrap();
+    }
+  };
+
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [configElement, setConfigElement] = useState<ConfigElement>({
@@ -40,14 +68,12 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
     value: '',
   });
   const theme = useTheme();
+  const [paginationPageSize, setPaginationPageSize] = useState(10);
+  const gridRef = useRef<AgGridReact>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const result: Config = await fetchConfig(auth.token);
-      setConfig(result);
-    };
-    fetchData();
-  }, [auth.token]);
+    calculatePageSize();
+  }, [config]);
 
   const handleAddConfigElement = () => {
     setConfigElement({ key: '', value: '' });
@@ -65,7 +91,7 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
     const answer = window.confirm(`Êtes-vous sûr de vouloir supprimer ${key}?`);
     if (answer) {
       try {
-        await deleteConfig(auth.token, key);
+        await deleteConfigElement(key);
         toast.success(`${key} supprimé`);
       } catch (error) {
         console.error(`Failed to delete ${key}:`, error);
@@ -73,8 +99,6 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
           `Une erreur s'est produite lors de la suppression du ${key}`,
         );
       }
-      const result = await fetchConfig(auth.token);
-      setConfig(result);
     }
   };
 
@@ -87,10 +111,10 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
 
     try {
       if (isEditing) {
-        await updateConfig(auth.token, configElement);
+        await updateConfigElement(configElement);
         toast.success(`${configElement.key} mis à jour`);
       } else {
-        await addConfig(auth.token, configElement);
+        await addConfigElement(configElement);
         toast.success(`${configElement.key} sauvegardé`);
       }
     } catch (error) {
@@ -99,60 +123,140 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
         `Une erreur s'est produite lors de la sauvegarde de ${configElement.key}`,
       );
     }
-    const result = await fetchConfig(auth.token);
-    setConfig(result);
     setOpen(false);
   };
 
-  const columns: any = [
-    { headerName: 'Nom', field: 'key' },
-    { headerName: 'Valeur', field: 'value' },
-    {
-      headerName: 'Actions',
-      field: 'configElement',
-      cellRenderer: (params: any) => (
-        <>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleEditConfigElement(params.data)}
-            sx={{ mr: 1 }}
-          >
-            Modifier
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => handleDeleteConfigElement(params.data.key)}
-          >
-            Supprimer
-          </Button>
-        </>
-      ),
+  // Common column configurations
+  const baseColumnConfig = useMemo(
+    () => ({
+      sortable: true,
+      filter: true,
+      filterParams: {
+        buttons: ['reset', 'apply'],
+      },
+    }),
+    [],
+  );
+
+  // Action cell renderer
+  const actionCellRenderer = useCallback(
+    (params: any) => (
+      <>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => handleEditConfigElement(params.data)}
+          sx={{ mr: 1 }}
+        >
+          Modifier
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={() => handleDeleteConfigElement(params.data.key)}
+        >
+          Supprimer
+        </Button>
+      </>
+    ),
+    [handleEditConfigElement, handleDeleteConfigElement],
+  );
+
+  const columns = useMemo<ColDef<ConfigElement>[]>(
+    () => [
+      {
+        headerName: 'Nom',
+        field: 'key',
+        ...baseColumnConfig,
+      },
+      {
+        headerName: 'Valeur',
+        field: 'value',
+        ...baseColumnConfig,
+      },
+      {
+        headerName: 'Actions',
+        cellRenderer: actionCellRenderer,
+        minWidth: 300,
+        sortable: false,
+        filter: false,
+      },
+    ],
+    [baseColumnConfig, actionCellRenderer],
+  );
+
+  const calculatePageSize = useCallback(() => {
+    const element = document.getElementById('config-table');
+    const footer = document.querySelector('.ag-paging-panel');
+    const header = document.querySelector('.ag-header-viewport');
+    if (element) {
+      const elementHeight = element.clientHeight;
+      const footerHeight = footer?.clientHeight ?? 48;
+      const headerHeight = header?.clientHeight ?? 48;
+      const newPageSize = Math.floor(
+        (elementHeight - headerHeight - footerHeight) / 50,
+      );
+      setPaginationPageSize(newPageSize > 0 ? newPageSize : 5);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('resize', calculatePageSize);
+    return () => {
+      window.removeEventListener('resize', calculatePageSize);
+    };
+  }, [calculatePageSize]);
+
+  const onGridReady = useCallback(
+    (params: any) => {
+      if (loadingConfig) {
+        params.api.showLoadingOverlay();
+      } else {
+        params.api.hideOverlay();
+      }
     },
-  ];
+    [loadingConfig],
+  );
 
   return (
-    <Box height={'100%'}>
+    <>
       <Button
         variant="contained"
         color="primary"
         onClick={handleAddConfigElement}
-        sx={{ mb: 2 }}
+        sx={{ ml: 2, mb: 2, mt: 2, width: 'fit-content' }}
       >
         Ajouter un élément de configuration
       </Button>
       <div
-        className={`ag-theme-quartz${theme.palette.mode === 'dark' ? '-dark' : ''}`}
+        id="config-table"
+        className={`config-table ag-theme-quartz${
+          theme.palette.mode === 'dark' ? '-dark' : ''
+        }`}
         style={{ height: '100%', width: '100%' }}
       >
         <AgGridReact
-          rowData={config}
+          ref={gridRef}
+          rowData={loadingConfig ? [] : config}
           columnDefs={columns}
+          rowHeight={50}
+          pagination={true}
+          paginationPageSize={paginationPageSize}
+          localeText={AG_GRID_LOCALE_FR}
           autoSizeStrategy={{
             type: 'fitGridWidth',
           }}
-          rowHeight={50}
+          paginationPageSizeSelector={false}
+          overlayLoadingTemplate={
+            '<span class="ag-overlay-loading-center">Chargement...</span>'
+          }
+          overlayNoRowsTemplate={
+            loadingConfig
+              ? 'Chargement des données...'
+              : 'Aucune configuration trouvée'
+          }
+          loadingOverlayComponentParams={{ loading: loadingConfig }}
+          onGridReady={onGridReady}
         />
       </div>
       <Dialog open={open} onClose={() => setOpen(false)}>
@@ -200,7 +304,7 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
           </DialogActions>
         </form>
       </Dialog>
-    </Box>
+    </>
   );
 };
 

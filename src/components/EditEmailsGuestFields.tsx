@@ -1,6 +1,7 @@
 import React, { FC } from 'react';
 import { Autocomplete, TextField, Box, Button } from '@mui/material';
-import { useGlobalData } from '../contexts/GlobalDataContext';
+import { useAppSelector } from '../store/hooks';
+import { getKnownEmails } from '../store/selectors';
 import { Helmet } from 'react-helmet-async';
 
 interface EditEmailsGuestFieldsProps {
@@ -26,7 +27,7 @@ const EditEmailsGuestFields: FC<EditEmailsGuestFieldsProps> = ({
   handleRemoveGuest,
   size,
 }) => {
-  const { knownEmails } = useGlobalData();
+  const knownEmails = useAppSelector(getKnownEmails);
 
   return (
     <Box>

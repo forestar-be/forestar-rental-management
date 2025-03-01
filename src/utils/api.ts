@@ -1,5 +1,5 @@
-import { ConfigElement } from '../components/settings/EditConfig';
 import {
+  ConfigElement,
   MachineRental,
   MachineRentalToCreate,
   MachineRentalWithMachineRented,
