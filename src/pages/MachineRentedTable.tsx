@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
@@ -19,6 +19,15 @@ import CreateMachineDialog from '../components/CreateMachineDialog';
 import { useGlobalData } from '../contexts/GlobalDataContext';
 
 const rowHeight = 40;
+
+// Base column configuration to reduce repetition
+const baseColDef = {
+  sortable: true,
+  filter: true,
+  filterParams: {
+    buttons: ['reset', 'apply'],
+  },
+};
 
 const MachineRentedTable: React.FC = () => {
   const auth = useAuth();
@@ -47,133 +56,137 @@ const MachineRentedTable: React.FC = () => {
     calculatePageSize();
   }, [machineRentedList]);
 
-  const handleAddMachine = async (
-    values: MachineRentedCreated & { image: File },
-  ) => {
-    try {
-      setLoadingCreate(true);
-      // remove empty guests
-      values.guests = values.guests.filter((guest) => !!guest);
+  const handleAddMachine = useCallback(
+    async (values: MachineRentedCreated & { image: File }) => {
+      try {
+        setLoadingCreate(true);
+        // remove empty guests
+        values.guests = values.guests.filter((guest) => !!guest);
 
-      if (values.maintenance_type === 'BY_NB_RENTAL') {
-        values.nb_day_before_maintenance = null;
-      } else {
-        values.nb_rental_before_maintenance = null;
+        if (values.maintenance_type === 'BY_NB_RENTAL') {
+          values.nb_day_before_maintenance = null;
+        } else {
+          values.nb_rental_before_maintenance = null;
+        }
+
+        await addMachineRented(values, auth.token);
+        await refreshMachineRentedList();
+        setIsModalOpen(false);
+        setInitialValues({
+          name: '',
+          maintenance_type: 'BY_DAY',
+          nb_day_before_maintenance: 0,
+          nb_rental_before_maintenance: null,
+          price_per_day: 0,
+          guests: [],
+          deposit: 0,
+        });
+      } catch (error) {
+        console.error("Erreur lors de l'ajout :", error);
+        toast.error("Une erreur s'est produite lors de l'ajout de la machine");
+      } finally {
+        setLoadingCreate(false);
       }
+    },
+    [auth.token, refreshMachineRentedList],
+  );
 
-      await addMachineRented(values, auth.token);
-      await refreshMachineRentedList();
-      setIsModalOpen(false);
-      setInitialValues({
-        name: '',
-        maintenance_type: 'BY_DAY',
-        nb_day_before_maintenance: 0,
-        nb_rental_before_maintenance: null,
-        price_per_day: 0,
-        guests: [],
-        deposit: 0,
-      });
-    } catch (error) {
-      console.error("Erreur lors de l'ajout :", error);
-      toast.error("Une erreur s'est produite lors de l'ajout de la machine");
-    } finally {
-      setLoadingCreate(false);
-    }
-  };
+  const handleRowOpen = useCallback(
+    (id: number) => {
+      navigate(`/machines/${id}`);
+    },
+    [navigate],
+  );
 
-  const columns: ColDef<MachineRented>[] = [
-    {
-      headerName: '',
-      field: 'id',
-      cellRenderer: (params: { value: number }) => (
-        <>
-          <Tooltip title="Ouvrir" arrow>
-            <IconButton
-              color="primary"
-              component="a"
-              href={`/machines/${params.value}`}
-              rel="noopener noreferrer"
-              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                e.preventDefault();
-                navigate(`/machines/${params.value}`);
-              }}
-            >
-              <VisibilityIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Ouvrir dans un nouvel onglet" arrow>
-            <IconButton
-              color="primary"
-              component="a"
-              href={`/machines/${params.value}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <OpenInNewIcon />
-            </IconButton>
-          </Tooltip>
-        </>
-      ),
-      width: 180,
-    },
-    {
-      headerName: 'Nom',
-      field: 'name' as keyof MachineRented,
-      sortable: true,
-      filter: true,
-    },
-    {
-      headerName: 'Type de maintenance',
-      field: 'maintenance_type' as keyof MachineRented,
-      sortable: true,
-      filter: true,
-      valueFormatter: (params: {
-        value: MachineRented['maintenance_type'];
-      }) => {
-        const valueToShow = TYPE_VALUE_ASSOCIATION[params.value];
+  // Memoized cell renderers
+  const ActionsRenderer = useCallback(
+    (params: { value: number }) => (
+      <>
+        <Tooltip title="Ouvrir" arrow>
+          <IconButton
+            color="primary"
+            onClick={() => handleRowOpen(params.value)}
+          >
+            <VisibilityIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Ouvrir dans un nouvel onglet" arrow>
+          <IconButton
+            color="primary"
+            component="a"
+            href={`/machines/${params.value}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <OpenInNewIcon />
+          </IconButton>
+        </Tooltip>
+      </>
+    ),
+    [handleRowOpen],
+  );
 
-        return valueToShow ?? 'Non défini';
+  // Memoized formatters
+  const formatMaintenanceType = useCallback(
+    (params: { value: MachineRented['maintenance_type'] }) => {
+      const valueToShow = TYPE_VALUE_ASSOCIATION[params.value];
+      return valueToShow ?? 'Non défini';
+    },
+    [],
+  );
+
+  const formatDate = useCallback((params: { value: string | null }) => {
+    return params.value
+      ? new Date(params.value).toLocaleDateString('fr-FR')
+      : 'Non défini';
+  }, []);
+
+  const columns = useMemo(() => {
+    const columnDefs: ColDef<MachineRented>[] = [
+      {
+        headerName: '',
+        field: 'id',
+        cellRenderer: ActionsRenderer,
+        width: 180,
       },
-    },
-    {
-      headerName: 'Nb jours avant maintenance',
-      field: 'nb_day_before_maintenance' as keyof MachineRented,
-      sortable: true,
-      filter: true,
-    },
-    {
-      headerName: 'Nb locations avant maintenance',
-      field: 'nb_rental_before_maintenance' as keyof MachineRented,
-      sortable: true,
-      filter: true,
-    },
-    {
-      headerName: 'Dernière maintenance',
-      field: 'last_maintenance_date' as keyof MachineRented,
-      sortable: true,
-      filter: true,
-      valueFormatter: (params: {
-        value: MachineRented['last_maintenance_date'];
-      }) => {
-        return params.value
-          ? new Date(params.value).toLocaleDateString('fr-FR')
-          : 'Non défini';
+      {
+        ...baseColDef,
+        headerName: 'Nom',
+        field: 'name',
       },
-    },
-    {
-      headerName: 'Prochaine maintenance',
-      field: 'next_maintenance' as keyof MachineRented,
-      sortable: true,
-      filter: true,
-      valueFormatter: (params: {
-        value: MachineRented['next_maintenance'];
-      }) => {
-        return params.value
-          ? new Date(params.value).toLocaleDateString('fr-FR')
-          : 'Non défini';
+      {
+        ...baseColDef,
+        headerName: 'Type de maintenance',
+        field: 'maintenance_type',
+        valueFormatter: formatMaintenanceType,
       },
-    },
-  ];
+      {
+        ...baseColDef,
+        headerName: 'Nb jours avant maintenance',
+        field: 'nb_day_before_maintenance',
+      },
+      {
+        ...baseColDef,
+        headerName: 'Nb locations avant maintenance',
+        field: 'nb_rental_before_maintenance',
+      },
+      {
+        ...baseColDef,
+        headerName: 'Dernière maintenance',
+        field: 'last_maintenance_date',
+        filter: 'agDateColumnFilter',
+        valueFormatter: formatDate,
+      },
+      {
+        ...baseColDef,
+        headerName: 'Prochaine maintenance',
+        field: 'next_maintenance',
+        filter: 'agDateColumnFilter',
+        valueFormatter: formatDate,
+      },
+    ];
+    return columnDefs;
+  }, [ActionsRenderer, formatMaintenanceType, formatDate]);
 
   const calculatePageSize = useCallback(() => {
     const element = document.getElementById('machine-repairs-table');
@@ -188,14 +201,25 @@ const MachineRentedTable: React.FC = () => {
       );
       setPaginationPageSize(newPageSize);
     }
-  }, [rowHeight]);
+  }, []);
 
   useEffect(() => {
     window.addEventListener('resize', calculatePageSize);
     return () => {
       window.removeEventListener('resize', calculatePageSize);
     };
-  }, []);
+  }, [calculatePageSize]);
+
+  const onGridReady = useCallback(
+    (params: any) => {
+      if (loadingMachineRentedList) {
+        params.api.showLoadingOverlay();
+      } else {
+        params.api.hideOverlay();
+      }
+    },
+    [loadingMachineRentedList],
+  );
 
   return (
     <Paper
@@ -240,13 +264,7 @@ const MachineRentedTable: React.FC = () => {
             '<span class="ag-overlay-loading-center">Chargement...</span>'
           }
           loadingOverlayComponentParams={{ loading: loadingMachineRentedList }}
-          onGridReady={(params) => {
-            if (loadingMachineRentedList) {
-              params.api.showLoadingOverlay();
-            } else {
-              params.api.hideOverlay();
-            }
-          }}
+          onGridReady={onGridReady}
         />
       </div>
 
