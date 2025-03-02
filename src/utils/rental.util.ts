@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 export const calculateTotalPrice = (
   rental: {
     machineRented: {
@@ -15,13 +17,12 @@ export const calculateTotalPrice = (
     rental?.returnDate
   ) {
     const { price_per_day } = rental.machineRented;
+    const startDate = dayjs(rental.rentalDate);
+    const endDate = dayjs(rental.returnDate);
+    const diffDays = endDate.diff(startDate, 'day') + 1; // +1 to include the first day
+
     return (
-      (price_per_day *
-        (new Date(rental.returnDate).getTime() -
-          new Date(rental.rentalDate).getTime())) /
-        (1000 * 60 * 60 * 24) +
-      1 +
-      (rental.with_shipping ? priceShipping : 0)
+      price_per_day * diffDays + (rental.with_shipping ? priceShipping : 0)
     );
   }
 

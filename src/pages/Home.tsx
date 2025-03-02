@@ -15,6 +15,7 @@ import {
   ImageList,
   Typography,
   TextField,
+  IconButton,
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { useFormik } from 'formik';
@@ -29,6 +30,7 @@ import {
   getMachineRentedLoading,
 } from '../store/selectors';
 import SearchIcon from '@mui/icons-material/Search';
+import { ClearIcon } from '@mui/x-date-pickers/icons';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const phoneRegex =
@@ -199,10 +201,23 @@ const Home = (): JSX.Element => {
           size="small"
           sx={{ minWidth: 450 }}
           onChange={(e) => setFilterText(e.target.value)}
-          slotProps={{
-            input: {
-              endAdornment: <SearchIcon />,
-            },
+          InputProps={{
+            endAdornment: (
+              <>
+                {filterText ? (
+                  <IconButton
+                    aria-label="clear search"
+                    onClick={() => setFilterText('')}
+                    edge="end"
+                    size="small"
+                  >
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                ) : (
+                  <SearchIcon />
+                )}
+              </>
+            ),
           }}
         />
       </Box>
