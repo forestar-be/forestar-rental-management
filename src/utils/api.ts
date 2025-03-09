@@ -44,7 +44,16 @@ const apiRequest = async (
     console.warn('Error parsing JSON of response', response, error);
   }
 
-  if ((throwError && !response.ok) || !data) {
+  if (
+    response.status === 403 &&
+    data?.message &&
+    data?.message === 'jwt expired'
+  ) {
+    window.location.href = `/login?redirect=${window.location.pathname}`;
+    return;
+  }
+
+  if (throwError && !response.ok) {
     console.error(`${response.statusText} ${response.status}`, data);
     throw new Error(`${response.statusText} ${response.status}`);
   }
