@@ -2,13 +2,18 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
-import { useTheme, IconButton, Tooltip } from '@mui/material';
+import { useTheme, IconButton, Tooltip, Chip } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import type { ColDef } from 'ag-grid-community/dist/types/core/entities/colDef';
+import type {
+  ColDef,
+  ValueGetterParams,
+} from 'ag-grid-community/dist/types/core/entities/colDef';
 import { useNavigate } from 'react-router-dom';
 import { MachineRentalWithMachineRented } from '../utils/types';
 import { AG_GRID_LOCALE_FR } from '@ag-grid-community/locale';
+import { StyledAgGridWrapper } from './styles/AgGridStyles';
+import { calculateTotalPrice } from '../utils/rental.util';
 
 export enum COLUMN_ID_RENTAL_GRID {
   ID = 'id',
@@ -17,6 +22,11 @@ export enum COLUMN_ID_RENTAL_GRID {
   RENTAL_DATE = 'rentalDate',
   RETURN_DATE = 'returnDate',
   MACHINE_NAME = 'machineRented.name',
+  SIGNED = 'finalTermsPdfId',
+  PAID = 'paid',
+  WITH_SHIPPING = 'with_shipping',
+  DEPOSIT_TO_PAY = 'depositToPay',
+  TOTAL_PRICE = 'totalPrice',
 }
 
 interface MachineRentalGridProps {
@@ -24,6 +34,7 @@ interface MachineRentalGridProps {
   rowHeight?: number;
   loading?: boolean;
   columnsToShow?: 'all' | COLUMN_ID_RENTAL_GRID[];
+  priceShipping?: number;
 }
 
 const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
@@ -31,6 +42,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
   rowHeight = 40,
   loading = false,
   columnsToShow = 'all',
+  priceShipping = 0,
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -61,6 +73,24 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         : 'Non défini',
     [],
   );
+
+  // Price formatter
+  const formatPrice = useCallback((params: { value: number }) => {
+    return params.value !== undefined && params.value !== null
+      ? `${params.value.toLocaleString('fr-FR')} €`
+      : '';
+  }, []);
+
+  // Price cell renderer with colored chips
+  const priceCellRenderer = useCallback((params: { value: number }) => {
+    if (params.value === undefined || params.value === null) {
+      return <Chip label="Non défini" color="default" size="small" />;
+    }
+    // Format the price
+    const formattedPrice = `${params.value.toLocaleString('fr-FR')} €`;
+
+    return <Chip label={formattedPrice} color={'primary'} size="small" />;
+  }, []);
 
   // Action cell renderer
   const actionCellRenderer = useCallback(
@@ -96,6 +126,48 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
     [navigate],
   );
 
+  // Boolean cell renderer for yes/no values
+  const booleanCellRenderer = useCallback(
+    (params: { value: boolean | undefined }) => (
+      <Chip
+        label={params.value ? 'Oui' : 'Non'}
+        color={params.value ? 'success' : 'default'}
+        size="small"
+      />
+    ),
+    [],
+  );
+
+  // Signed cell renderer
+  const signedCellRenderer = useCallback(
+    (params: { value: string | undefined }) => (
+      <Chip
+        label={params.value ? 'Oui' : 'Non'}
+        color={params.value ? 'success' : 'default'}
+        size="small"
+      />
+    ),
+    [],
+  );
+
+  // Client name value getter
+  const clientNameValueGetter = useCallback(
+    (params: ValueGetterParams<MachineRentalWithMachineRented>) => {
+      if (!params.data) return '';
+      return `${params.data.clientFirstName || ''} ${params.data.clientLastName || ''}`.trim();
+    },
+    [],
+  );
+
+  // Total price value getter
+  const totalPriceValueGetter = useCallback(
+    (params: ValueGetterParams<MachineRentalWithMachineRented>) => {
+      if (!params.data) return 0;
+      return calculateTotalPrice(params.data, priceShipping);
+    },
+    [priceShipping],
+  );
+
   const allColumns = useMemo<ColDef<MachineRentalWithMachineRented>[]>(
     () => [
       {
@@ -110,13 +182,9 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         ...baseColumnConfig,
       },
       {
-        headerName: 'Prénom',
-        field: COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME,
-        ...baseColumnConfig,
-      },
-      {
-        headerName: 'Nom',
-        field: COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME,
+        headerName: 'Client',
+        colId: 'clientFullName',
+        valueGetter: clientNameValueGetter,
         ...baseColumnConfig,
       },
       {
@@ -133,8 +201,59 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         filter: 'agDateColumnFilter',
         valueFormatter: formatDate,
       },
+      {
+        headerName: 'Signé',
+        field: COLUMN_ID_RENTAL_GRID.SIGNED,
+        ...baseColumnConfig,
+        cellRenderer: signedCellRenderer,
+        width: 120,
+      },
+      {
+        headerName: 'Payé',
+        field: COLUMN_ID_RENTAL_GRID.PAID,
+        ...baseColumnConfig,
+        cellRenderer: booleanCellRenderer,
+        width: 120,
+      },
+      {
+        headerName: 'Caution payé',
+        field: COLUMN_ID_RENTAL_GRID.DEPOSIT_TO_PAY,
+        ...baseColumnConfig,
+        cellRenderer: (params: { value: boolean | undefined }) => {
+          return booleanCellRenderer({
+            ...params,
+            value: !params.value,
+          });
+        },
+        width: 150,
+      },
+      {
+        headerName: 'Avec livraison',
+        field: COLUMN_ID_RENTAL_GRID.WITH_SHIPPING,
+        ...baseColumnConfig,
+        cellRenderer: booleanCellRenderer,
+        width: 150,
+      },
+      {
+        headerName: 'Prix total',
+        colId: 'totalPrice',
+        valueGetter: totalPriceValueGetter,
+        cellRenderer: priceCellRenderer,
+        ...baseColumnConfig,
+        width: 150,
+      },
     ],
-    [baseColumnConfig, actionCellRenderer, formatDate],
+    [
+      baseColumnConfig,
+      actionCellRenderer,
+      formatDate,
+      formatPrice,
+      signedCellRenderer,
+      booleanCellRenderer,
+      clientNameValueGetter,
+      totalPriceValueGetter,
+      priceCellRenderer,
+    ],
   );
 
   // Dynamically filter columns based on columnsToShow prop
@@ -144,8 +263,10 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
     }
     return allColumns.filter(
       (column) =>
-        column.field &&
-        columnsToShow.includes(column.field as COLUMN_ID_RENTAL_GRID),
+        (column.field || column.colId) &&
+        (column.field
+          ? columnsToShow.includes(column.field as COLUMN_ID_RENTAL_GRID)
+          : column.colId === 'clientFullName' || column.colId === 'totalPrice'),
     );
   }, [allColumns, columnsToShow]);
 
@@ -183,12 +304,11 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
   );
 
   return (
-    <div
+    <StyledAgGridWrapper
       id="machine-rental-table"
       className={`machine-rental-table ag-theme-quartz${
         theme.palette.mode === 'dark' ? '-dark' : ''
       }`}
-      style={{ height: '100%', width: '100%' }}
     >
       <AgGridReact
         rowHeight={rowHeight}
@@ -208,7 +328,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         loadingOverlayComponentParams={{ loading }}
         onGridReady={onGridReady}
       />
-    </div>
+    </StyledAgGridWrapper>
   );
 };
 

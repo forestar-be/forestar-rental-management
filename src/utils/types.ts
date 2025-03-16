@@ -14,6 +14,7 @@ export interface MachineRental {
   guests: string[];
   with_shipping: boolean;
   depositToPay: boolean;
+  finalTermsPdfId?: string;
 }
 
 export interface MachineRentalWithMachineRented extends MachineRental {

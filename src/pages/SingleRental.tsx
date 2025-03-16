@@ -9,6 +9,14 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Paper,
+  Stack,
+  Chip,
+  useMediaQuery,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
@@ -16,10 +24,18 @@ import { useTheme } from '@mui/material/styles';
 import SingleField from '../components/machine/SingleField';
 import { MachineLoading } from '../components/machine/MachineLoading';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
+import {
+  Edit as EditIcon,
+  Save as SaveIcon,
+  ArrowBack as ArrowBackIcon,
+  AttachMoney as AttachMoneyIcon,
+  Description as DescriptionIcon,
+  Handyman as HandymanIcon,
+} from '@mui/icons-material';
 import {
   deleteMachineRentalApi,
   fetchMachineRentalById,
+  getRentalAgreement,
   updateMachineRental,
 } from '../utils/api';
 import { toast } from 'react-toastify';
@@ -27,7 +43,7 @@ import { MachineRental, MachineRentalWithMachineRented } from '../utils/types';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
-import { notifyLoading } from '../utils/notifications';
+import { notifyError, notifyLoading } from '../utils/notifications';
 import { calculateTotalPrice } from '../utils/rental.util';
 import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash';
@@ -50,6 +66,8 @@ const SingleRental = () => {
   const [notificationUpdating, setNotificationUpdating] =
     useState<null | ReturnType<typeof notifyLoading>>(null);
   const priceShipping = useSelector(getPriceShipping);
+  const [fileURL, setFileURL] = useState<string | null>(null);
+  const [loadingAgreement, setLoadingAgreement] = useState(false);
 
   const updateRentalData = useCallback(
     (updatedData: Partial<MachineRental>) => {
@@ -250,26 +268,99 @@ const SingleRental = () => {
     [rental],
   );
 
+  const openTermsInNewTab = useCallback(async () => {
+    if (fileURL) {
+      const pdfWindow = window.open();
+      if (pdfWindow) {
+        pdfWindow.location.href = fileURL;
+      } else {
+        notifyError("Impossible d'ouvrir le PDF dans un nouvel onglet");
+      }
+      return;
+    }
+
+    if (rental && rental.id) {
+      try {
+        setLoadingAgreement(true);
+        // Use the API endpoint to get the rental agreement
+        const rentalAgreementBlob = await getRentalAgreement(
+          rental.id.toString(),
+          auth.token,
+        );
+        const filePdf = new Blob([rentalAgreementBlob], {
+          type: 'application/pdf',
+        });
+
+        // Create URL and open in new tab
+        const newFileURL = URL.createObjectURL(filePdf);
+        setFileURL(newFileURL);
+
+        const pdfWindow = window.open();
+        if (pdfWindow) {
+          pdfWindow.location.href = newFileURL;
+        } else {
+          notifyError("Impossible d'ouvrir le PDF dans un nouvel onglet");
+        }
+      } catch (error) {
+        console.error('Error fetching rental agreement:', error);
+        notifyError('Erreur lors de la récupération du contrat de location');
+      } finally {
+        setLoadingAgreement(false);
+      }
+    }
+  }, [
+    fileURL,
+    rental,
+    auth.token,
+    notifyError,
+    setLoadingAgreement,
+    setFileURL,
+  ]);
+
   if (loading) {
     return <MachineLoading />;
   }
 
   return (
-    <Box sx={{ padding: 4, paddingTop: 2 }}>
-      <Grid container display={'flex'} mb={2}>
-        <Grid item xs={3}>
-          <Box display="flex" alignItems="center">
-            <Typography variant="h4" gutterBottom paddingTop={1}>
-              Location n°{rental?.id}
-            </Typography>
-          </Box>
-        </Grid>
-        <Grid
-          item
-          xs={9}
-          display={'flex'}
-          flexDirection={'row-reverse'}
+    <Box
+      sx={{
+        pt: { xs: 1, sm: 2 },
+        pb: { xs: 2, sm: 3, md: 4 },
+        pr: { xs: 2, sm: 3, md: 4 },
+        pl: { xs: 2, sm: 3, md: 4 },
+        backgroundColor: theme.palette.background.default,
+        minHeight: '100vh',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          pb: { xs: 1 },
+        }}
+      >
+        {/* <Box display="flex" alignItems="center" gap={2}>
+          <IconButton
+            onClick={() => navigate('/locations')}
+            sx={{
+              bgcolor: theme.palette.background.paper,
+              boxShadow: 1,
+              '&:hover': { bgcolor: theme.palette.primary.light },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4" gutterBottom={false}>
+            Location n°{rental?.id}
+          </Typography>
+        </Box> */}
+
+        <Stack
+          direction="row"
           gap={4}
+          flexWrap="nowrap"
+          justifyContent="center"
+          flexDirection={'row-reverse'}
         >
           <Tooltip title="Supprimer la location" arrow>
             <Button
@@ -289,26 +380,14 @@ const SingleRental = () => {
             }
           >
             <Button
-              color={isEditing ? 'success' : 'warning'}
+              variant={isEditing ? 'contained' : 'text'}
+              color={isEditing ? 'success' : 'secondary'}
               startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
               onClick={switchEditing}
             >
               {isEditing ? 'enregistrer' : 'modifier'}
             </Button>
           </Tooltip>
-          <Button
-            color="primary"
-            startIcon={<VisibilityIcon />}
-            component="a"
-            href={`/machines/${rental?.machineRentedId}`}
-            rel="noopener noreferrer"
-            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-              e.preventDefault();
-              navigate(`/machines/${rental?.machineRentedId}`);
-            }}
-          >
-            Accéder à la machine
-          </Button>
           <Tooltip
             arrow
             title={
@@ -318,7 +397,7 @@ const SingleRental = () => {
             }
           >
             <Button
-              color={rental?.paid ? 'success' : 'warning'}
+              color={rental?.paid ? 'primary' : 'warning'}
               startIcon={
                 rental?.paid ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />
               }
@@ -336,9 +415,9 @@ const SingleRental = () => {
             }
           >
             <Button
-              color={rental?.depositToPay ? 'success' : 'warning'}
+              color={!rental?.depositToPay ? 'primary' : 'warning'}
               startIcon={
-                rental?.depositToPay ? (
+                !rental?.depositToPay ? (
                   <CheckBoxIcon />
                 ) : (
                   <CheckBoxOutlineBlankIcon />
@@ -350,206 +429,295 @@ const SingleRental = () => {
                 }
               }}
             >
-              {rental?.depositToPay ? 'Caution payée' : 'Caution non payée'}
+              {!rental?.depositToPay ? 'Caution payée' : 'Caution non payée'}
             </Button>
           </Tooltip>
-        </Grid>
-      </Grid>
+        </Stack>
+      </Box>
+
       {rental && (
-        <Grid container spacing={2}>
-          <Grid item xs={6} spacing={4}>
-            <Typography variant="h6">Détails</Typography>
-            <SingleField
-              label="Date de location"
-              name="rentalDate"
-              value={rental.rentalDate}
-              valueType="date"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={handleChange}
-              size="small"
-              shouldDisableDate={shouldDisableDate}
-            />
-            <SingleField
-              label="Date de retour"
-              name="returnDate"
-              value={rental.returnDate}
-              valueType="date"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={handleChange}
-              size="small"
-              shouldDisableDate={shouldDisableDate}
-            />
-            <SingleField
-              label="Prix total"
-              name="total_price"
-              value={`${totalPrice} €`}
-              valueType={'text'}
-              isEditing={false}
-              handleChange={() => {}}
-              size="small"
-            />
-            <SingleField
-              label="Prénom"
-              name="clientFirstName"
-              value={rental.clientFirstName}
-              valueType="text"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={handleChange}
-              size="small"
-            />
-            <SingleField
-              label="Nom"
-              name="clientLastName"
-              value={rental.clientLastName}
-              valueType="text"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={handleChange}
-              size="small"
-            />
-            <SingleField
-              label="Email"
-              name="clientEmail"
-              value={rental.clientEmail}
-              valueType="text"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={handleChange}
-              size="small"
-            />
-            <SingleField
-              label="Téléphone"
-              name="clientPhone"
-              value={rental.clientPhone}
-              valueType="text"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={handleChange}
-              size="small"
-            />
-            <SingleField
-              label="Adresse"
-              name="clientAddress"
-              value={rental.clientAddress}
-              valueType="text"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={handleChange}
-              size="small"
-            />
-            <SingleField
-              label="Code postal"
-              name="clientPostal"
-              value={rental.clientPostal}
-              valueType="text"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={handleChange}
-              size="small"
-            />
-            <SingleField
-              label="Ville"
-              name="clientCity"
-              value={rental.clientCity}
-              valueType="text"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={handleChange}
-              size="small"
-            />
-
-            <Grid item xs={12} display={'flex'} alignItems="center">
-              {isEditing ? (
-                <FormControlLabel
-                  sx={{ mb: 2 }}
-                  control={
-                    <Checkbox
-                      checked={rental.with_shipping}
-                      onChange={(e) => {
-                        handleChange(e.target.checked, 'with_shipping');
-                      }}
-                      name="with_shipping"
-                    />
-                  }
-                  label="Avec livraison"
-                />
-              ) : (
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  sx={{ margin: '8px 0' }}
-                >
-                  <Typography variant="subtitle1" noWrap>
-                    Avec livraison :
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ marginLeft: '10px' }}>
-                    {rental.with_shipping ? 'Oui' : 'Non'}
-                  </Typography>
-                </Box>
-              )}
-            </Grid>
-
-            <SingleField
-              label="Invités"
-              name="guests"
-              value={rental.guests.join(', ')}
-              valueType="guest_email_list"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={() => {}} // not used with guest_email_list
-              emails={rental.guests}
-              errorsEmails={[]}
-              touchedEmails={[]}
-              lastIndexEmail={rental.guests.length - 1}
-              handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
-              handleAddEmailGuest={handleAddEmailGuest}
-              handleRemoveEmailGuest={handleRemoveEmailGuest}
-              size="small"
-            />
+        <Grid container spacing={3}>
+          {/* Client Information Card */}
+          <Grid item xs={12} md={6}>
+            <Card elevation={3} sx={{ height: '100%', borderRadius: 2 }}>
+              <CardHeader
+                title="Informations Client"
+                sx={{
+                  backgroundColor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
+                  py: 1.5,
+                }}
+              />
+              <CardContent sx={{ p: 3 }}>
+                <Grid container spacing={2}>
+                  <SingleField
+                    label="Prénom"
+                    name="clientFirstName"
+                    value={rental.clientFirstName}
+                    valueType="text"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                  />
+                  <SingleField
+                    label="Nom"
+                    name="clientLastName"
+                    value={rental.clientLastName}
+                    valueType="text"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                  />
+                  <SingleField
+                    label="Email"
+                    name="clientEmail"
+                    value={rental.clientEmail}
+                    valueType="text"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                  />
+                  <SingleField
+                    label="Téléphone"
+                    name="clientPhone"
+                    value={rental.clientPhone}
+                    valueType="text"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                  />
+                  <SingleField
+                    label="Adresse"
+                    name="clientAddress"
+                    value={rental.clientAddress}
+                    valueType="text"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                    xs={12}
+                  />
+                  <SingleField
+                    label="Code postal"
+                    name="clientPostal"
+                    value={rental.clientPostal}
+                    valueType="text"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                  />
+                  <SingleField
+                    label="Ville"
+                    name="clientCity"
+                    value={rental.clientCity}
+                    valueType="text"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                  />
+                </Grid>
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid item xs={6} spacing={4}>
-            <Typography variant="h6">Machine louée</Typography>
-            <SingleField
-              label="Nom"
-              name="name"
-              value={rental.machineRented.name}
-              valueType="text"
-              isEditing={false}
-              handleChange={() => {}}
-            />
-            <SingleField
-              label="Dernière maintenance"
-              name="last_maintenance_date"
-              value={
-                rental.machineRented.last_maintenance_date || 'Non définie'
-              }
-              valueType={
-                rental.machineRented.last_maintenance_date ? 'date' : 'text'
-              }
-              isEditing={false}
-              handleChange={() => {}}
-            />
-            <SingleField
-              label="Prochaine maintenance"
-              name="next_maintenance"
-              value={rental.machineRented.next_maintenance || 'Non définie'}
-              valueType={
-                rental.machineRented.next_maintenance ? 'date' : 'text'
-              }
-              isEditing={false}
-              handleChange={() => {}}
-            />
-            <SingleField
-              label="Prix par jour"
-              name="price_per_day"
-              value={`${rental.machineRented.price_per_day} €`}
-              valueType={'text'}
-              isEditing={false}
-              handleChange={() => {}}
-            />
+
+          {/* Rental Details Card */}
+          <Grid item xs={12} md={6}>
+            <Card elevation={3} sx={{ height: '100%', borderRadius: 2 }}>
+              <CardHeader
+                title="Détails de la Location"
+                sx={{
+                  backgroundColor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
+                  py: 1.5,
+                }}
+                action={
+                  rental?.finalTermsPdfId && (
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      startIcon={<DescriptionIcon />}
+                      onClick={openTermsInNewTab}
+                      size="medium"
+                      disabled={loadingAgreement}
+                      sx={{
+                        mr: 1,
+                        bgcolor: theme.palette.background.default,
+                        color: theme.palette.text.primary,
+                      }}
+                    >
+                      {loadingAgreement
+                        ? 'Chargement...'
+                        : 'Afficher le contrat'}
+                    </Button>
+                  )
+                }
+              />
+              <CardContent sx={{ p: 3 }}>
+                <Grid container spacing={2}>
+                  <SingleField
+                    label="Date de location"
+                    name="rentalDate"
+                    value={rental.rentalDate}
+                    valueType="date"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                    shouldDisableDate={shouldDisableDate}
+                  />
+                  <SingleField
+                    label="Date de retour"
+                    name="returnDate"
+                    value={rental.returnDate}
+                    valueType="date"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                    shouldDisableDate={shouldDisableDate}
+                  />
+                  <SingleField
+                    label="Contrat signé"
+                    name="finalTermsPdfId"
+                    value={Boolean(rental.finalTermsPdfId)}
+                    valueType="boolean"
+                    isEditing={false}
+                    handleChange={() => {}}
+                    size="small"
+                    xs={6}
+                    isMultiline={false}
+                  />
+                  <SingleField
+                    label="Avec livraison"
+                    name="with_shipping"
+                    value={rental.with_shipping}
+                    valueType="boolean"
+                    isEditing={isEditing}
+                    handleChange={handleChange}
+                    size="small"
+                    xs={6}
+                    isMultiline={false}
+                  />
+                  <Grid item xs={12}>
+                    <Box
+                      display={'flex'}
+                      flexDirection={'row'}
+                      gap={'10px'}
+                      margin={'5px 0'}
+                    >
+                      <Typography fontWeight="bold" color="primary">
+                        Prix total : {totalPrice} €
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <SingleField
+                    xs={12}
+                    label="Invités"
+                    name="guests"
+                    value={rental.guests.join(', ')}
+                    valueType="guest_email_list"
+                    isEditing={isEditing}
+                    handleChange={() => {}} // not used with guest_email_list
+                    emails={rental.guests}
+                    errorsEmails={[]}
+                    touchedEmails={[]}
+                    lastIndexEmail={rental.guests.length - 1}
+                    handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
+                    handleAddEmailGuest={handleAddEmailGuest}
+                    handleRemoveEmailGuest={handleRemoveEmailGuest}
+                    size="small"
+                  />
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Machine Details Card */}
+          <Grid item xs={12}>
+            <Card elevation={3} sx={{ borderRadius: 2 }}>
+              <CardHeader
+                title="Machine Louée"
+                sx={{
+                  backgroundColor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
+                  py: 1.5,
+                }}
+                action={
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    startIcon={<HandymanIcon />}
+                    onClick={() =>
+                      navigate(`/machines/${rental?.machineRentedId}`)
+                    }
+                    size="medium"
+                    sx={{
+                      mr: 1,
+                      bgcolor: theme.palette.background.default,
+                      color: theme.palette.text.primary,
+                    }}
+                  >
+                    Accéder à la machine
+                  </Button>
+                }
+              />
+              <CardContent sx={{ p: 3 }}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <SingleField
+                      xs={12}
+                      label="Nom"
+                      name="name"
+                      value={rental.machineRented.name}
+                      valueType="text"
+                      isEditing={false}
+                      handleChange={() => {}}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <SingleField
+                      xs={12}
+                      label="Prix par jour"
+                      name="price_per_day"
+                      value={`${rental.machineRented.price_per_day} €`}
+                      valueType={'text'}
+                      isEditing={false}
+                      handleChange={() => {}}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <SingleField
+                      xs={12}
+                      label="Dernière maintenance"
+                      name="last_maintenance_date"
+                      value={
+                        rental.machineRented.last_maintenance_date ||
+                        'Non définie'
+                      }
+                      valueType={
+                        rental.machineRented.last_maintenance_date
+                          ? 'date'
+                          : 'text'
+                      }
+                      isEditing={false}
+                      handleChange={() => {}}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <SingleField
+                      xs={12}
+                      label="Prochaine maintenance"
+                      name="next_maintenance"
+                      value={
+                        rental.machineRented.next_maintenance || 'Non définie'
+                      }
+                      valueType={
+                        rental.machineRented.next_maintenance ? 'date' : 'text'
+                      }
+                      isEditing={false}
+                      handleChange={() => {}}
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
       )}

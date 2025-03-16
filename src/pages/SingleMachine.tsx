@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { cloneDeep } from 'lodash';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -20,6 +20,10 @@ import {
   Tooltip,
   FormControlLabel,
   Checkbox,
+  Card,
+  CardContent,
+  CardHeader,
+  CardMedia,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
@@ -65,6 +69,7 @@ import MaintenanceDialog from '../components/MaintenanceDialog';
 import MaintenanceHistory from '../components/MaintenanceHistory';
 
 const SingleMachine = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const auth = useAuth();
   const { id } = useParams<{ id: string }>();
@@ -432,136 +437,140 @@ const SingleMachine = () => {
     [],
   );
 
+  const maxHeightAgGridTable = useMemo(() => {
+    return 'calc(100vh - 170px)';
+  }, []);
+
   return (
-    <Box sx={{ padding: 4, paddingTop: 2 }}>
+    <Box sx={{ padding: 4, paddingTop: 2, pb: 0 }}>
       {loading && <MachineLoading />}
       {machine && (
         <Grid container spacing={2}>
           <Grid item xs={4} mt={1}>
-            <Grid item xs={12} mb={1}>
-              <Box display="flex" alignItems="center">
-                <Typography variant="h6">Machine {machine?.name}</Typography>
-              </Box>
-            </Grid>
-            {isEditing && (
-              <Grid item xs={12} display={'flex'} gap={'10px'}>
-                {renderField(
-                  'Nom',
-                  'name',
-                  machine.name,
-                  'text',
-                  false,
-                  isEditing,
-                  12,
-                  'small',
+            <Card elevation={3}>
+              <CardHeader
+                title={`Machine ${machine?.name}`}
+                titleTypographyProps={{ variant: 'h6' }}
+                sx={{
+                  backgroundColor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
+                  py: 1.5,
+                }}
+              />
+              <CardContent>
+                {isEditing && (
+                  <Grid item xs={12} display={'flex'} gap={'10px'} mb={2}>
+                    {renderField(
+                      'Nom',
+                      'name',
+                      machine.name,
+                      'text',
+                      false,
+                      isEditing,
+                      12,
+                      'small',
+                    )}
+                  </Grid>
                 )}
-              </Grid>
-            )}
-            <Grid item xs={12} display={'flex'} gap={'10px'}>
-              {renderSelect(
-                'Type de maintenance',
-                'maintenance_type',
-                machine.maintenance_type,
-                ['BY_DAY', 'BY_NB_RENTAL'],
-                { width: '100%' },
-                12,
-                {},
-                (value: string) => TYPE_VALUE_ASSOCIATION[value] ?? value,
-                'small',
-              )}
-            </Grid>
-            <Grid item xs={12} display={'flex'} gap={'10px'}>
-              {machine.maintenance_type === 'BY_DAY'
-                ? renderField(
-                    'Nombre de jour avant maintenance',
-                    'nb_day_before_maintenance',
-                    machine.nb_day_before_maintenance,
-                    'number',
+                <Grid container spacing={2}>
+                  {renderSelect(
+                    'Type de maintenance',
+                    'maintenance_type',
+                    machine.maintenance_type,
+                    ['BY_DAY', 'BY_NB_RENTAL'],
+                    { width: '100%' },
+                    12,
+                    {},
+                    (value: string) => TYPE_VALUE_ASSOCIATION[value] ?? value,
+                    'small',
+                  )}
+                  {machine.maintenance_type === 'BY_DAY'
+                    ? renderField(
+                        'Nombre de jour avant maintenance',
+                        'nb_day_before_maintenance',
+                        machine.nb_day_before_maintenance,
+                        'number',
+                        false,
+                        isEditing,
+                        12,
+                        'small',
+                      )
+                    : renderField(
+                        'Nombre de location avant maintenance',
+                        'nb_rental_before_maintenance',
+                        machine.nb_rental_before_maintenance,
+                        'number',
+                        false,
+                        isEditing,
+                        12,
+                        'small',
+                      )}
+                  {renderField(
+                    'Date de dernière maintenance',
+                    'last_maintenance_date',
+                    machine.last_maintenance_date,
+                    'date',
                     false,
-                    isEditing,
+                    false,
                     12,
                     'small',
-                  )
-                : renderField(
-                    'Nombre de location avant maintenance',
-                    'nb_rental_before_maintenance',
-                    machine.nb_rental_before_maintenance,
-                    'number',
+                  )}
+                  {renderField(
+                    'Date de prochaine maintenance',
+                    'next_maintenance',
+                    machine.next_maintenance,
+                    'date',
+                    false,
+                    false,
+                    12,
+                    'small',
+                  )}
+                  {renderField(
+                    'Prix par jour',
+                    'price_per_day',
+                    isEditing
+                      ? machine.price_per_day
+                      : formatPriceNumberToFrenchFormatStr(
+                          machine.price_per_day,
+                        ),
+                    isEditing ? 'number' : 'text',
                     false,
                     isEditing,
                     12,
                     'small',
                   )}
-            </Grid>
-            <Grid item xs={12} display={'flex'}>
-              {renderField(
-                'Date de dernière maintenance',
-                'last_maintenance_date',
-                machine.last_maintenance_date,
-                'date',
-                false,
-                false,
-                12,
-                'small',
-              )}
-            </Grid>
-            <Grid item xs={12} display={'flex'}>
-              {renderField(
-                'Date de prochaine maintenance',
-                'next_maintenance',
-                machine.next_maintenance,
-                'date',
-                false,
-                false,
-                12,
-                'small',
-              )}
-            </Grid>
-            <Grid item xs={12} display={'flex'}>
-              {renderField(
-                'Prix par jour',
-                'price_per_day',
-                isEditing
-                  ? machine.price_per_day
-                  : formatPriceNumberToFrenchFormatStr(machine.price_per_day),
-                isEditing ? 'number' : 'text',
-                false,
-                isEditing,
-                12,
-                'small',
-              )}
-            </Grid>
-            <Grid item xs={12} display={'flex'}>
-              {renderField(
-                'Caution',
-                'deposit',
-                isEditing
-                  ? machine.deposit
-                  : formatPriceNumberToFrenchFormatStr(machine.deposit),
-                isEditing ? 'number' : 'text',
-                false,
-                isEditing,
-                12,
-                'small',
-              )}
-            </Grid>
-            <SingleField
-              label="Invités"
-              name="guests"
-              value={machine.guests.join(', ')}
-              valueType="guest_email_list"
-              isEditing={isEditing}
-              xs={12}
-              handleChange={() => {}} // not used with guest_email_list
-              emails={machine.guests}
-              errorsEmails={[]}
-              touchedEmails={[]}
-              lastIndexEmail={machine.guests.length - 1}
-              handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
-              handleAddEmailGuest={handleAddEmailGuest}
-              handleRemoveEmailGuest={handleRemoveEmailGuest}
-              size="small"
-            />
+                  {renderField(
+                    'Caution',
+                    'deposit',
+                    isEditing
+                      ? machine.deposit
+                      : formatPriceNumberToFrenchFormatStr(machine.deposit),
+                    isEditing ? 'number' : 'text',
+                    false,
+                    isEditing,
+                    12,
+                    'small',
+                  )}
+                  <SingleField
+                    label="Invités"
+                    name="guests"
+                    value={machine.guests.join(', ')}
+                    valueType="guest_email_list"
+                    isEditing={isEditing}
+                    xs={12}
+                    handleChange={() => {}} // not used with guest_email_list
+                    emails={machine.guests}
+                    errorsEmails={[]}
+                    touchedEmails={[]}
+                    lastIndexEmail={machine.guests.length - 1}
+                    handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
+                    handleAddEmailGuest={handleAddEmailGuest}
+                    handleRemoveEmailGuest={handleRemoveEmailGuest}
+                    size="small"
+                  />
+                </Grid>
+              </CardContent>
+            </Card>
             <Grid item xs={12} display={'flex'}>
               <ImageList variant="masonry" cols={1} gap={8}>
                 <MachineRentedImageItem
@@ -631,7 +640,8 @@ const SingleMachine = () => {
                   }
                 >
                   <Button
-                    color={isEditing ? 'success' : 'warning'}
+                    variant={isEditing ? 'contained' : 'text'}
+                    color={isEditing ? 'success' : 'secondary'}
                     startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
                     onClick={switchEditing}
                   >
@@ -649,9 +659,16 @@ const SingleMachine = () => {
                 </Tooltip>
               </Grid>
             </Grid>
-            <Box sx={{ mt: 2, height: '100%' }}>
+            <Box
+              sx={{
+                mt: 2,
+                height: '100%',
+                maxHeight:
+                  tabValue === 0 ? maxHeightAgGridTable : 'fit-content',
+              }}
+            >
               {tabValue === 0 && (
-                <Box sx={{ maxHeight: '75vh', height: '100%' }}>
+                <Box sx={{ maxHeight: maxHeightAgGridTable, height: '100%' }}>
                   <MachineRentalGrid
                     rowData={
                       loading
