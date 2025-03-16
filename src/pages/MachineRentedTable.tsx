@@ -2,7 +2,14 @@ import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
-import { Button, IconButton, Paper, Tooltip, Typography } from '@mui/material';
+import {
+  Button,
+  Chip,
+  IconButton,
+  Paper,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import { useTheme } from '@mui/material/styles';
 import type { ColDef } from 'ag-grid-community/dist/types/core/entities/colDef';
@@ -22,6 +29,7 @@ import {
   getMachineRentedList,
   getMachineRentedLoading,
 } from '../store/selectors';
+import { StyledAgGridWrapper } from '../components/styles/AgGridStyles';
 
 const rowHeight = 40;
 
@@ -137,6 +145,53 @@ const MachineRentedTable: React.FC = () => {
     [handleRowOpen],
   );
 
+  // Next maintenance renderer with colored chips
+  const NextMaintenanceRenderer = useCallback(
+    (params: { value: string | null }) => {
+      if (!params.value) return <span>Non défini</span>;
+
+      const nextMaintenanceDate = new Date(params.value);
+      const today = new Date();
+
+      // Reset hours, minutes, seconds, and milliseconds for date comparison
+      today.setHours(0, 0, 0, 0);
+      nextMaintenanceDate.setHours(0, 0, 0, 0);
+
+      const diffTime = nextMaintenanceDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Format the date for display
+      const formattedDate = nextMaintenanceDate.toLocaleDateString('fr-FR');
+
+      // Determine chip color and tooltip text based on days until maintenance
+      let chipColor: 'error' | 'warning' | 'success' = 'success';
+      let tooltipText = `Maintenance prévue dans ${diffDays} jours`;
+
+      if (diffDays <= 0) {
+        chipColor = 'error';
+        tooltipText =
+          diffDays === 0
+            ? "Maintenance prévue aujourd'hui"
+            : 'Maintenance en retard';
+      } else if (diffDays <= 3) {
+        chipColor = 'warning';
+        tooltipText = `Maintenance prévue dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+      }
+
+      return (
+        <Tooltip title={tooltipText} arrow placement="left">
+          <Chip
+            label={formattedDate}
+            color={chipColor}
+            size="small"
+            sx={{ fontWeight: 500 }}
+          />
+        </Tooltip>
+      );
+    },
+    [],
+  );
+
   // Memoized formatters
   const formatMaintenanceType = useCallback(
     (params: { value: MachineRented['maintenance_type'] }) => {
@@ -151,6 +206,30 @@ const MachineRentedTable: React.FC = () => {
       ? new Date(params.value).toLocaleDateString('fr-FR')
       : 'Non défini';
   }, []);
+
+  const formatNextMaintenanceCounter = useCallback(
+    (params: { data?: MachineRented }) => {
+      if (!params.data) return 'Non défini';
+
+      const {
+        maintenance_type,
+        nb_day_before_maintenance,
+        nb_rental_before_maintenance,
+      } = params.data;
+
+      if (maintenance_type === 'BY_DAY' && nb_day_before_maintenance !== null) {
+        return `${nb_day_before_maintenance} jours`;
+      } else if (
+        maintenance_type === 'BY_NB_RENTAL' &&
+        nb_rental_before_maintenance !== null
+      ) {
+        return `${nb_rental_before_maintenance} locations`;
+      }
+
+      return 'Non défini';
+    },
+    [],
+  );
 
   const columns = useMemo(() => {
     const columnDefs: ColDef<MachineRented>[] = [
@@ -173,13 +252,10 @@ const MachineRentedTable: React.FC = () => {
       },
       {
         ...baseColDef,
-        headerName: 'Nb jours avant maintenance',
-        field: 'nb_day_before_maintenance',
-      },
-      {
-        ...baseColDef,
-        headerName: 'Nb locations avant maintenance',
-        field: 'nb_rental_before_maintenance',
+        headerName: 'Maintenance tous les',
+        field: 'maintenance_type',
+        valueGetter: (params) => params.data,
+        valueFormatter: formatNextMaintenanceCounter,
       },
       {
         ...baseColDef,
@@ -193,11 +269,17 @@ const MachineRentedTable: React.FC = () => {
         headerName: 'Prochaine maintenance',
         field: 'next_maintenance',
         filter: 'agDateColumnFilter',
-        valueFormatter: formatDate,
+        cellRenderer: NextMaintenanceRenderer,
       },
     ];
     return columnDefs;
-  }, [ActionsRenderer, formatMaintenanceType, formatDate]);
+  }, [
+    ActionsRenderer,
+    formatMaintenanceType,
+    formatDate,
+    formatNextMaintenanceCounter,
+    NextMaintenanceRenderer,
+  ]);
 
   const calculatePageSize = useCallback(() => {
     const element = document.getElementById('machine-repairs-table');
@@ -254,10 +336,9 @@ const MachineRentedTable: React.FC = () => {
           Ajouter une machine
         </Button>
       </div>
-      <div
+      <StyledAgGridWrapper
         id="machine-repairs-table"
         className={`machine-repairs-table ag-theme-quartz${theme.palette.mode === 'dark' ? '-dark' : ''}`}
-        style={{ height: '100%', width: '100%' }}
       >
         <AgGridReact
           rowHeight={rowHeight}
@@ -277,7 +358,7 @@ const MachineRentedTable: React.FC = () => {
           loadingOverlayComponentParams={{ loading: loadingMachineRentedList }}
           onGridReady={onGridReady}
         />
-      </div>
+      </StyledAgGridWrapper>
 
       <CreateMachineDialog
         open={isModalOpen}

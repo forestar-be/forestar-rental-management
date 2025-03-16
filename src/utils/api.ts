@@ -39,9 +39,15 @@ const apiRequest = async (
   let data;
 
   try {
-    data = await response.json();
+    // Check if the response is a binary type
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.blob();
+    }
   } catch (error) {
-    console.warn('Error parsing JSON of response', response, error);
+    console.warn('Error parsing response', response, error);
   }
 
   if (
@@ -239,3 +245,14 @@ export const updateConfig = (token: string, configToUpdate: ConfigElement) =>
     token,
     configToUpdate,
   );
+
+export const getRentalAgreement = async (
+  rentalId: string,
+  token: string,
+): Promise<Blob> => {
+  return await apiRequest(
+    `/rental-mngt/machine-rental/${rentalId}/rental-agreement`,
+    'GET',
+    token,
+  );
+};

@@ -31,6 +31,7 @@ import { getConfig, getConfigLoading } from '../../store/selectors';
 import { ConfigElement } from '../../utils/types';
 import type { ColDef } from 'ag-grid-community/dist/types/core/entities/colDef';
 import { AG_GRID_LOCALE_FR } from '@ag-grid-community/locale';
+import { StyledAgGridWrapper } from '../styles/AgGridStyles';
 
 interface EditConfigProps {}
 
@@ -228,12 +229,11 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
       >
         Ajouter un élément de configuration
       </Button>
-      <div
+      <StyledAgGridWrapper
         id="config-table"
         className={`config-table ag-theme-quartz${
           theme.palette.mode === 'dark' ? '-dark' : ''
         }`}
-        style={{ height: '100%', width: '100%' }}
       >
         <AgGridReact
           ref={gridRef}
@@ -258,7 +258,7 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
           loadingOverlayComponentParams={{ loading: loadingConfig }}
           onGridReady={onGridReady}
         />
-      </div>
+      </StyledAgGridWrapper>
       <Dialog open={open} onClose={() => setOpen(false)}>
         <form onSubmit={handleSave}>
           <DialogTitle>

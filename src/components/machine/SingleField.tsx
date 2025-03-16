@@ -1,5 +1,13 @@
 import React, { useEffect } from 'react';
-import { Grid, TextField, Box, Typography } from '@mui/material';
+import {
+  Grid,
+  TextField,
+  Box,
+  Typography,
+  Chip,
+  FormControlLabel,
+  Checkbox,
+} from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -14,7 +22,7 @@ interface Props {
   label: string;
   name: string;
   value: string | Date | number | boolean | null;
-  valueType: 'text' | 'date' | 'number' | 'guest_email_list';
+  valueType: 'text' | 'date' | 'number' | 'guest_email_list' | 'boolean';
   isMultiline?: boolean;
   isEditing: boolean;
   handleChange: (
@@ -164,7 +172,7 @@ const SingleField: React.FC<Props> = ({
   }, [valueType]);
 
   return (
-    <Grid item xs={(xs ?? isMultiline) ? 12 : 6}>
+    <Grid item xs={xs ?? (isMultiline ? 12 : 6)}>
       {isEditing ? (
         valueType === 'date' ? (
           <DatePickerField
@@ -200,6 +208,19 @@ const SingleField: React.FC<Props> = ({
             handleEditGuestByIndex={handleEditEmailGuestByIndex!}
             handleRemoveGuest={handleRemoveEmailGuest!}
           />
+        ) : valueType === 'boolean' ? (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={value as boolean}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  handleChange(e.target.checked, name);
+                }}
+                name={name}
+              />
+            }
+            label={label}
+          />
         ) : (
           <TextFieldComponent
             label={label}
@@ -233,13 +254,22 @@ const SingleField: React.FC<Props> = ({
               {label} :
             </Typography>
           )}
-          <Typography variant="subtitle1" sx={{ overflowWrap: 'break-word' }}>
-            {valueType === 'date' && value
-              ? new Date(String(value)).toLocaleDateString('fr-Fr')
-              : value
-                ? String(value)
-                : noValueDisplay}
-          </Typography>
+          {valueType === 'boolean' ? (
+            <Chip
+              sx={{ marginLeft: '10px' }}
+              label={value ? 'Oui' : 'Non'}
+              color={value ? 'success' : 'default'}
+              size="small"
+            />
+          ) : (
+            <Typography variant="subtitle1" sx={{ overflowWrap: 'break-word' }}>
+              {valueType === 'date' && value
+                ? new Date(String(value)).toLocaleDateString('fr-Fr')
+                : value
+                  ? String(value)
+                  : noValueDisplay}
+            </Typography>
+          )}
         </Box>
       )}
     </Grid>
