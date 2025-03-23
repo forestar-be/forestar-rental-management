@@ -12,6 +12,7 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import HomeIcon from '@mui/icons-material/Home';
 import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import LaunchIcon from '@mui/icons-material/Launch';
 import { useTheme } from '@mui/material/styles';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -21,6 +22,9 @@ import { Logo } from '../components/Logo';
 import { useAuth } from '../hooks/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@mui/material';
+
+// Environment variables
+const URL_RENTAL_OPERATOR = process.env.REACT_APP_URL_RENTAL_OPERATOR;
 
 interface Props {
   onSidebarOpen: () => void;
@@ -112,6 +116,18 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   variant="contained"
                 >
                   Machines
+                </Button>
+                <Button
+                  component="a"
+                  href={URL_RENTAL_OPERATOR || ''}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Opérateur de Location"
+                  color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
+                  startIcon={<LaunchIcon fontSize="medium" />}
+                  variant="contained"
+                >
+                  Opérateur
                 </Button>
               </Box>
 
