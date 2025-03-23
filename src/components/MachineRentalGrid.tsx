@@ -236,7 +236,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
       },
       {
         headerName: 'Prix total',
-        colId: 'totalPrice',
+        colId: COLUMN_ID_RENTAL_GRID.TOTAL_PRICE,
         valueGetter: totalPriceValueGetter,
         cellRenderer: priceCellRenderer,
         ...baseColumnConfig,
@@ -266,7 +266,10 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         (column.field || column.colId) &&
         (column.field
           ? columnsToShow.includes(column.field as COLUMN_ID_RENTAL_GRID)
-          : column.colId === 'clientFullName' || column.colId === 'totalPrice'),
+          : (column.colId === 'clientFullName' &&
+              columnsToShow.includes(COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME) &&
+              columnsToShow.includes(COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME)) ||
+            columnsToShow.includes(column.colId as COLUMN_ID_RENTAL_GRID)),
     );
   }, [allColumns, columnsToShow]);
 

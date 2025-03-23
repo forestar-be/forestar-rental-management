@@ -43,6 +43,8 @@ const apiRequest = async (
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
+    } else if (contentType && contentType.includes('text/html')) {
+      data = await response.text();
     } else {
       data = await response.blob();
     }
@@ -61,7 +63,12 @@ const apiRequest = async (
 
   if (throwError && !response.ok) {
     console.error(`${response.statusText} ${response.status}`, data);
-    throw new Error(`${response.statusText} ${response.status}`);
+    if (typeof data === 'string' && data) {
+      throw new Error(data);
+    }
+    throw new Error(
+      data?.message || `${response.statusText} ${response.status}`,
+    );
   }
 
   return data;
