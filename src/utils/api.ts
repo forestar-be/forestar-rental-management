@@ -18,7 +18,6 @@ const apiRequest = async (
   body?: any,
   additionalHeaders: HeadersInit = { 'Content-Type': 'application/json' },
   stringifyBody: boolean = true,
-  throwError: boolean = true,
 ) => {
   const headers: HeadersInit = {
     Authorization: `Bearer ${token}`,
@@ -58,10 +57,17 @@ const apiRequest = async (
     data?.message === 'jwt expired'
   ) {
     window.location.href = `/login?redirect=${window.location.pathname}`;
-    return;
   }
 
-  if (throwError && !response.ok) {
+  if (
+    response.status === 403 &&
+    data?.message &&
+    data?.message === 're_auth_gg_required'
+  ) {
+    window.location.href = `/connection-google?redirect=${window.location.pathname}`;
+  }
+
+  if (!response.ok) {
     console.error(`${response.statusText} ${response.status}`, data);
     if (typeof data === 'string' && data) {
       throw new Error(data);
@@ -170,7 +176,6 @@ export const createMachineRental = async (
     rental,
     undefined,
     undefined,
-    false,
   );
 };
 
@@ -200,13 +205,7 @@ export const updateMachineRental = async (
   id: string,
   data: Partial<MachineRental>,
   token: string,
-): Promise<
-  | MachineRental
-  | {
-      errorKey: string;
-      message: string;
-    }
-> => {
+): Promise<MachineRental> => {
   const response = await apiRequest(
     `/rental-mngt/machine-rental/${id}`,
     'PATCH',
@@ -214,14 +213,8 @@ export const updateMachineRental = async (
     data,
     undefined,
     undefined,
-    false,
   );
-  return response as
-    | MachineRental
-    | {
-        errorKey: string;
-        message: string;
-      };
+  return response as MachineRental;
 };
 
 export async function getKnownEmails(token: string): Promise<string[]> {
@@ -259,6 +252,23 @@ export const getRentalAgreement = async (
 ): Promise<Blob> => {
   return await apiRequest(
     `/rental-mngt/machine-rental/${rentalId}/rental-agreement`,
+    'GET',
+    token,
+  );
+};
+
+export const isAuthenticatedGg = async (
+  token: string,
+): Promise<{ isAuthenticated: boolean }> => {
+  return await apiRequest('/auth-google/is-authenticated', 'GET', token);
+};
+
+export const getAuthUrlGg = async (
+  token: string,
+  redirectUrl: string,
+): Promise<{ url: string; email: string }> => {
+  return await apiRequest(
+    `/auth-google/url?redirect=${redirectUrl}`,
     'GET',
     token,
   );

@@ -24,7 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@mui/material';
 
 // Environment variables
-const URL_RENTAL_OPERATOR = process.env.REACT_APP_URL_RENTAL_OPERATOR;
+const URL_RENTAL_OPERATOR = process.env.URL_RENTAL_OPERATOR;
 
 interface Props {
   onSidebarOpen: () => void;

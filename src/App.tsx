@@ -26,6 +26,7 @@ import Settings from './pages/Settings';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import LoginGoogle from './pages/LoginGoogle';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -67,41 +68,55 @@ const App = (): JSX.Element => {
           <CssBaseline />
           <BrowserRouter>
             <AuthProvider>
-              <ReduxProvider store={store}>
-                <StoreInitializer />
-                <LocalizationProvider
-                  dateAdapter={AdapterDayjs}
-                  adapterLocale={'fr'}
-                >
-                  <Layout>
-                    <ToastContainer />
-                    <Routes>
-                      <Route path="/login" element={<Login />} />
-                      <Route element={<AuthRoute />}>
-                        <Route path="/" element={<Home />} />
-                        <Route
-                          path="/machines"
-                          element={<MachineRentedTable />}
-                        />
-                        <Route
-                          path="/machines/:id"
-                          element={<SingleMachine />}
-                        />
-                        <Route
-                          path="/locations"
-                          element={<MachineRentalTable />}
-                        />
-                        <Route
-                          path="/locations/:id"
-                          element={<SingleRental />}
-                        />
-                        <Route path="/parametres" element={<Settings />} />
-                      </Route>
-                      <Route path="*" element={<NotFoundPage />} />
-                    </Routes>
-                  </Layout>
-                </LocalizationProvider>
-              </ReduxProvider>
+              <LocalizationProvider
+                dateAdapter={AdapterDayjs}
+                adapterLocale={'fr'}
+              >
+                <Layout>
+                  <ToastContainer />
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route element={<AuthRoute />}>
+                      <Route
+                        path="/connection-google"
+                        element={<LoginGoogle />}
+                      />
+                      <Route
+                        path="/*"
+                        element={
+                          <ReduxProvider store={store}>
+                            <StoreInitializer />
+                            <Routes>
+                              <Route path="/" element={<Home />} />
+                              <Route
+                                path="/machines"
+                                element={<MachineRentedTable />}
+                              />
+                              <Route
+                                path="/machines/:id"
+                                element={<SingleMachine />}
+                              />
+                              <Route
+                                path="/locations"
+                                element={<MachineRentalTable />}
+                              />
+                              <Route
+                                path="/locations/:id"
+                                element={<SingleRental />}
+                              />
+                              <Route
+                                path="/parametres"
+                                element={<Settings />}
+                              />
+                            </Routes>
+                          </ReduxProvider>
+                        }
+                      />
+                    </Route>
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Layout>
+              </LocalizationProvider>
             </AuthProvider>
           </BrowserRouter>
         </ThemeProvider>

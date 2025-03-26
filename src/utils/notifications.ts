@@ -53,7 +53,7 @@ export const notifyInfo = (
  */
 export const notifyError = (
   message: string,
-  timeout: number = DEFAULT_TIMEOUT,
+  timeout: number = 3 * DEFAULT_TIMEOUT,
   additionalOptions: ToastOptions | null = null,
 ): Id =>
   toast.error(message, {

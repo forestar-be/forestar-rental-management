@@ -216,7 +216,7 @@ const SingleMachine = () => {
 
   const deleteMachine = useCallback(() => {
     if (!id) {
-      alert('ID invalide');
+      notifyError('ID invalide');
       return;
     }
     if (window.confirm('Voulez-vous vraiment supprimer cette machine ?')) {
@@ -235,7 +235,7 @@ const SingleMachine = () => {
 
   useEffect(() => {
     if (!id) {
-      alert('ID invalide');
+      notifyError('ID invalide');
       return;
     }
     const fetchData = async () => {
@@ -252,7 +252,7 @@ const SingleMachine = () => {
         setMachine(data);
       } catch (error) {
         console.error('Error fetching machine:', error);
-        alert(
+        notifyError(
           `Une erreur s'est produite lors de la récupération des données ${error}`,
         );
       } finally {

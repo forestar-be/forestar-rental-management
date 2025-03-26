@@ -80,32 +80,25 @@ const SingleRental = () => {
         );
         setNotificationUpdating(newNotificationUpdating);
         updateMachineRental(id!, updatedData, auth.token)
-          .then(
-            (
-              updatedRental:
-                | MachineRental
-                | {
-                    errorKey: string;
-                    message: string;
-                  },
-            ) => {
-              if ('errorKey' in updatedRental) {
-                newNotificationUpdating.error(updatedRental.message);
-                return;
-              }
-              newNotificationUpdating.success(null);
-              const newRental = {
-                ...updatedRental,
-                machineRented: rental.machineRented,
-              };
-              setRental(newRental);
-              setInitialRental(cloneDeep(newRental));
-            },
-          )
+          .then((updatedRental: MachineRental) => {
+            newNotificationUpdating.success(null);
+            const newRental = {
+              ...updatedRental,
+              machineRented: rental.machineRented,
+            };
+            setRental(newRental);
+            setInitialRental(cloneDeep(newRental));
+          })
           .catch((error: Error) => {
-            newNotificationUpdating.error(
-              `Une erreur s'est produite lors de la mise à jour de la location : ${error.message}`,
-            );
+            if (String(error?.message).includes('overlapping_rental')) {
+              newNotificationUpdating.error(
+                'Les dates de location sont déjà prises',
+              );
+            } else {
+              newNotificationUpdating.error(
+                `Une erreur s'est produite lors de la mise à jour de la location : ${error.message}`,
+              );
+            }
             console.error('Erreur lors de la mise à jour :', error);
           });
       }
@@ -146,7 +139,7 @@ const SingleRental = () => {
 
   const deleteRental = useCallback(() => {
     if (!id) {
-      alert('ID invalide');
+      notifyError('ID invalide');
       return;
     }
     if (window.confirm('Voulez-vous vraiment supprimer cette location ?')) {
@@ -164,7 +157,7 @@ const SingleRental = () => {
 
   useEffect(() => {
     if (!id) {
-      alert('ID invalide');
+      notifyError('ID invalide');
       return;
     }
     const fetchData = async () => {
