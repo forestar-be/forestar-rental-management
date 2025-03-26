@@ -32,6 +32,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import { ClearIcon } from '@mui/x-date-pickers/icons';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { notifyError } from '../utils/notifications';
 
 const phoneRegex =
   /^(\+?[1-9]\d{0,2}[-.\s]?)?(0?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}(?:[-.\s]?\d{1,9})?)$/;
@@ -132,23 +133,19 @@ const Home = (): JSX.Element => {
         values.guests = values.guests.filter((guest) => !!guest);
         setLoadingCreate(true);
         // Appel à l'API pour créer une machine louée
-        const result: MachineRental | { errorKey: string; message: string } =
-          await createMachineRental(selectedMachine.id, values, auth.token);
-        if ('errorKey' in result) {
-          if (!result.message) {
-            throw new Error(result.errorKey);
-          }
-          toast.error(result.message);
-        } else {
-          refreshMachineRentalList();
-          refreshMachineRentedList();
-          handleClose(true);
-        }
+        await createMachineRental(selectedMachine.id, values, auth.token);
+        refreshMachineRentalList();
+        refreshMachineRentedList();
+        handleClose(true);
       } catch (error) {
+        if (String((error as Error)?.message).includes('overlapping_rental')) {
+          notifyError('Les dates de location sont déjà prises');
+        } else {
+          notifyError(
+            `Une erreur s'est produite lors de la création de la location: ${error}`,
+          );
+        }
         console.error('Failed to create machine rental:', error);
-        toast.error(
-          "Une erreur s'est produite lors de la création de la location",
-        );
       } finally {
         setLoadingCreate(false);
       }

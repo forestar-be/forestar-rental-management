@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { notifyError } from '../utils/notifications';
 
 const Login = (): JSX.Element => {
   const theme = useTheme();
@@ -38,15 +39,15 @@ const Login = (): JSX.Element => {
       try {
         const { success, message } = await loginAction({ username, password });
         if (!success) {
-          alert(message || 'Impossible de vous authentifier');
+          notifyError(message || 'Impossible de vous authentifier');
         }
       } catch (e) {
-        alert((e as Error).message);
+        notifyError((e as Error).message);
       }
       setLoading(false);
       return;
     }
-    alert('please provide a valid input');
+    notifyError('please provide a valid input');
   };
 
   return (
