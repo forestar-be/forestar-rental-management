@@ -3,6 +3,7 @@ import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 import {
+  Box,
   Button,
   Chip,
   IconButton,
@@ -12,10 +13,11 @@ import {
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import { useTheme } from '@mui/material/styles';
-import type { ColDef } from 'ag-grid-community/dist/types/core/entities/colDef';
+import type { ColDef, GridReadyEvent } from 'ag-grid-community';
 import { AG_GRID_LOCALE_FR } from '@ag-grid-community/locale';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import '../styles/MachineRentedTable.css';
 import { addMachineRented } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +32,11 @@ import {
   getMachineRentedLoading,
 } from '../store/selectors';
 import { StyledAgGridWrapper } from '../components/styles/AgGridStyles';
+import {
+  clearGridState,
+  onFirstDataRendered,
+  setupGridStateEvents,
+} from '../utils/agGridSettingsHelper';
 
 const rowHeight = 40;
 
@@ -74,6 +81,20 @@ const MachineRentedTable: React.FC = () => {
   useEffect(() => {
     calculatePageSize();
   }, [machineRentedList]);
+
+  // Handle reset grid state
+  const handleResetGrid = useCallback(() => {
+    if (
+      window.confirm(
+        'Réinitialiser tous les paramètres du tableau (colonnes, filtres) ?',
+      )
+    ) {
+      // Clear the saved state
+      clearGridState('machineRentedAgGridState');
+      // Reload the page to apply the reset
+      window.location.reload();
+    }
+  }, []);
 
   const handleAddMachine = useCallback(
     async (values: MachineRentedCreated & { image: File }) => {
@@ -304,38 +325,64 @@ const MachineRentedTable: React.FC = () => {
   }, [calculatePageSize]);
 
   const onGridReady = useCallback(
-    (params: any) => {
+    (params: GridReadyEvent<MachineRented>) => {
       if (loadingMachineRentedList) {
         params.api.showLoadingOverlay();
       } else {
         params.api.hideOverlay();
       }
+      calculatePageSize();
+
+      // Setup event listeners to save grid state on changes
+      setupGridStateEvents(params.api, 'machineRentedAgGridState');
     },
-    [loadingMachineRentedList],
+    [loadingMachineRentedList, calculatePageSize],
   );
+
+  // Handle first data rendered - load saved column state
+  const handleFirstDataRendered = useCallback((params: any) => {
+    onFirstDataRendered(params, 'machineRentedAgGridState');
+  }, []);
 
   return (
     <Paper
       sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}
       id="machineRentedTable"
     >
-      <div
-        style={{
-          padding: 16,
+      <Box
+        sx={{
+          py: 1,
+          px: 2,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
       >
         <Typography variant="h6">Machines en location</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setIsModalOpen(true)}
-        >
-          Ajouter une machine
-        </Button>
-      </div>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip
+            title="Réinitialiser le tableau (filtre, tri, déplacement et taille des colonnes)"
+            arrow
+          >
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<RestartAltIcon />}
+              onClick={handleResetGrid}
+              size="small"
+            >
+              Réinitialiser
+            </Button>
+          </Tooltip>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setIsModalOpen(true)}
+          >
+            Ajouter une machine
+          </Button>
+        </Box>
+      </Box>
       <StyledAgGridWrapper
         id="machine-repairs-table"
         className={`machine-repairs-table ag-theme-quartz${theme.palette.mode === 'dark' ? '-dark' : ''}`}
@@ -357,6 +404,7 @@ const MachineRentedTable: React.FC = () => {
           }
           loadingOverlayComponentParams={{ loading: loadingMachineRentedList }}
           onGridReady={onGridReady}
+          onFirstDataRendered={handleFirstDataRendered}
         />
       </StyledAgGridWrapper>
 

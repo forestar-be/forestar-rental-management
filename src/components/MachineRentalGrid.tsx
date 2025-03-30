@@ -8,12 +8,17 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import type {
   ColDef,
   ValueGetterParams,
-} from 'ag-grid-community/dist/types/core/entities/colDef';
+  GridReadyEvent,
+} from 'ag-grid-community';
 import { useNavigate } from 'react-router-dom';
 import { MachineRentalWithMachineRented } from '../utils/types';
 import { AG_GRID_LOCALE_FR } from '@ag-grid-community/locale';
 import { StyledAgGridWrapper } from './styles/AgGridStyles';
 import { calculateTotalPrice } from '../utils/rental.util';
+import {
+  onFirstDataRendered,
+  setupGridStateEvents,
+} from '../utils/agGridSettingsHelper';
 
 export enum COLUMN_ID_RENTAL_GRID {
   ID = 'id',
@@ -35,6 +40,7 @@ interface MachineRentalGridProps {
   loading?: boolean;
   columnsToShow?: 'all' | COLUMN_ID_RENTAL_GRID[];
   priceShipping?: number;
+  gridStateKey?: string;
 }
 
 const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
@@ -43,15 +49,31 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
   loading = false,
   columnsToShow = 'all',
   priceShipping = 0,
+  gridStateKey,
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const gridRef = React.createRef<AgGridReact>();
 
+  const calculatePageSize = useCallback(() => {
+    const element = document.getElementById('machine-rental-table');
+    const footer = document.querySelector('.ag-paging-panel');
+    const header = document.querySelector('.ag-header-viewport');
+    if (element) {
+      const elementHeight = element.clientHeight;
+      const footerHeight = footer?.clientHeight ?? 48;
+      const headerHeight = header?.clientHeight ?? 48;
+      const newPageSize = Math.floor(
+        (elementHeight - headerHeight - footerHeight) / rowHeight,
+      );
+      setPaginationPageSize(newPageSize);
+    }
+  }, [rowHeight]);
+
   useEffect(() => {
     calculatePageSize();
-  }, [rowData]);
+  }, [calculatePageSize, rowData]);
 
   // Common column configurations to avoid repetition
   const baseColumnConfig = useMemo(
@@ -193,6 +215,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         ...baseColumnConfig,
         filter: 'agDateColumnFilter',
         valueFormatter: formatDate,
+        sort: 'desc',
       },
       {
         headerName: 'Date de retour',
@@ -247,7 +270,6 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
       baseColumnConfig,
       actionCellRenderer,
       formatDate,
-      formatPrice,
       signedCellRenderer,
       booleanCellRenderer,
       clientNameValueGetter,
@@ -273,21 +295,6 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
     );
   }, [allColumns, columnsToShow]);
 
-  const calculatePageSize = useCallback(() => {
-    const element = document.getElementById('machine-rental-table');
-    const footer = document.querySelector('.ag-paging-panel');
-    const header = document.querySelector('.ag-header-viewport');
-    if (element) {
-      const elementHeight = element.clientHeight;
-      const footerHeight = footer?.clientHeight ?? 48;
-      const headerHeight = header?.clientHeight ?? 48;
-      const newPageSize = Math.floor(
-        (elementHeight - headerHeight - footerHeight) / rowHeight,
-      );
-      setPaginationPageSize(newPageSize);
-    }
-  }, [rowHeight]);
-
   useEffect(() => {
     window.addEventListener('resize', calculatePageSize);
     return () => {
@@ -295,15 +302,33 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
     };
   }, [calculatePageSize]);
 
+  // Handle grid ready event
   const onGridReady = useCallback(
-    (params: any) => {
+    (params: GridReadyEvent<MachineRentalWithMachineRented>) => {
       if (loading) {
         params.api.showLoadingOverlay();
       } else {
         params.api.hideOverlay();
       }
+      calculatePageSize();
+
+      // Setup event listeners to save grid state on changes if gridStateKey is provided
+      if (gridStateKey) {
+        const gridApi = params.api;
+        setupGridStateEvents(gridApi, gridStateKey);
+      }
     },
-    [loading],
+    [loading, calculatePageSize, gridStateKey],
+  );
+
+  // Handle first data rendered - load saved column state
+  const handleFirstDataRendered = useCallback(
+    (params: any) => {
+      if (gridStateKey) {
+        onFirstDataRendered(params, gridStateKey);
+      }
+    },
+    [gridStateKey],
   );
 
   return (
@@ -314,9 +339,9 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
       }`}
     >
       <AgGridReact
-        rowHeight={rowHeight}
         ref={gridRef}
-        rowData={loading ? [] : rowData}
+        suppressCellFocus={true}
+        rowData={rowData}
         columnDefs={columns}
         pagination={true}
         paginationPageSize={paginationPageSize}
@@ -328,8 +353,9 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         overlayLoadingTemplate={
           '<span class="ag-overlay-loading-center">Chargement...</span>'
         }
-        loadingOverlayComponentParams={{ loading }}
+        overlayNoRowsTemplate='<span class="ag-overlay-no-rows-center">Aucune location</span>'
         onGridReady={onGridReady}
+        onFirstDataRendered={handleFirstDataRendered}
       />
     </StyledAgGridWrapper>
   );
