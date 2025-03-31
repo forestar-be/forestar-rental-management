@@ -15,14 +15,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Box,
 } from '@mui/material';
 import { useAuth } from '../../hooks/AuthProvider';
 import { useTheme } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
-  fetchConfigData,
   addConfigElement as addConfigElementAction,
   updateConfigElement as updateConfigElementAction,
   deleteConfigElement as deleteConfigElementAction,
@@ -56,11 +54,14 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
     }
   };
 
-  const deleteConfigElement = async (key: string) => {
-    if (token) {
-      await dispatch(deleteConfigElementAction({ token, key })).unwrap();
-    }
-  };
+  const deleteConfigElement = useCallback(
+    async (key: string) => {
+      if (token) {
+        await dispatch(deleteConfigElementAction({ token, key })).unwrap();
+      }
+    },
+    [dispatch, token],
+  );
 
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -72,36 +73,37 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const gridRef = useRef<AgGridReact>(null);
 
-  useEffect(() => {
-    calculatePageSize();
-  }, [config]);
-
   const handleAddConfigElement = () => {
     setConfigElement({ key: '', value: '' });
     setIsEditing(false);
     setOpen(true);
   };
 
-  const handleEditConfigElement = (element: ConfigElement) => {
+  const handleEditConfigElement = useCallback((element: ConfigElement) => {
     setConfigElement(element);
     setIsEditing(true);
     setOpen(true);
-  };
+  }, []);
 
-  const handleDeleteConfigElement = async (key: string) => {
-    const answer = window.confirm(`Êtes-vous sûr de vouloir supprimer ${key}?`);
-    if (answer) {
-      try {
-        await deleteConfigElement(key);
-        toast.success(`${key} supprimé`);
-      } catch (error) {
-        console.error(`Failed to delete ${key}:`, error);
-        toast.error(
-          `Une erreur s'est produite lors de la suppression du ${key}`,
-        );
+  const handleDeleteConfigElement = useCallback(
+    async (key: string) => {
+      const answer = window.confirm(
+        `Êtes-vous sûr de vouloir supprimer ${key}?`,
+      );
+      if (answer) {
+        try {
+          await deleteConfigElement(key);
+          toast.success(`${key} supprimé`);
+        } catch (error) {
+          console.error(`Failed to delete ${key}:`, error);
+          toast.error(
+            `Une erreur s'est produite lors de la suppression du ${key}`,
+          );
+        }
       }
-    }
-  };
+    },
+    [deleteConfigElement],
+  );
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -207,6 +209,10 @@ const EditConfig: React.FC<EditConfigProps> = ({}) => {
       window.removeEventListener('resize', calculatePageSize);
     };
   }, [calculatePageSize]);
+
+  useEffect(() => {
+    calculatePageSize();
+  }, [calculatePageSize, config]);
 
   const onGridReady = useCallback(
     (params: any) => {
