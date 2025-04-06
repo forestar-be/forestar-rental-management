@@ -76,6 +76,10 @@ const MachineRentedTable: React.FC = () => {
     price_per_day: 0,
     guests: [],
     deposit: 0,
+    operatingHours: null,
+    fuelLevel: null,
+    lastMeasurementUpdate: null,
+    lastMeasurementUser: null,
   });
 
   useEffect(() => {
@@ -120,6 +124,10 @@ const MachineRentedTable: React.FC = () => {
           price_per_day: 0,
           guests: [],
           deposit: 0,
+          operatingHours: null,
+          fuelLevel: null,
+          lastMeasurementUpdate: null,
+          lastMeasurementUser: null,
         });
       } catch (error) {
         console.error("Erreur lors de l'ajout :", error);

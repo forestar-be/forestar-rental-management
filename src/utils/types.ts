@@ -47,6 +47,10 @@ export interface MachineRented {
   maintenanceHistories: MaintenanceHistory[];
   deposit: number;
   forbiddenRentalDays: Date[];
+  operatingHours: number | null;
+  fuelLevel: number | null;
+  lastMeasurementUpdate: Date | null;
+  lastMeasurementUser: string | null;
 }
 
 export type MachineRentedWithoutRental = Omit<MachineRented, 'machineRentals'>;

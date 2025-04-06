@@ -708,6 +708,81 @@ const SingleRental = () => {
                       handleChange={() => {}}
                     />
                   </Grid>
+
+                  {/* Machine Measurement Data */}
+                  <Grid item xs={12}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ mt: 2, mb: 0, fontWeight: 'medium' }}
+                    >
+                      Mesures de la machine
+                    </Typography>
+                    <Divider />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <SingleField
+                      xs={12}
+                      label="Heures de fonctionnement"
+                      name="operatingHours"
+                      value={
+                        rental.machineRented.operatingHours !== null &&
+                        rental.machineRented.operatingHours !== undefined
+                          ? `${rental.machineRented.operatingHours} h`
+                          : 'Non défini'
+                      }
+                      valueType="text"
+                      isEditing={isEditing}
+                      handleChange={handleChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <SingleField
+                      xs={12}
+                      label="Niveau de carburant"
+                      name="fuelLevel"
+                      value={
+                        rental.machineRented.fuelLevel !== null &&
+                        rental.machineRented.fuelLevel !== undefined
+                          ? `${rental.machineRented.fuelLevel} %`
+                          : 'Non défini'
+                      }
+                      valueType="text"
+                      isEditing={isEditing}
+                      handleChange={handleChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <SingleField
+                      xs={12}
+                      label="Dernière mise à jour"
+                      name="lastMeasurementUpdate"
+                      value={
+                        rental.machineRented.lastMeasurementUpdate ||
+                        'Non défini'
+                      }
+                      valueType={
+                        rental.machineRented.lastMeasurementUpdate
+                          ? 'date'
+                          : 'text'
+                      }
+                      isEditing={false}
+                      handleChange={() => {}}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <SingleField
+                      xs={12}
+                      label="Mis à jour par"
+                      name="lastMeasurementUser"
+                      value={
+                        rental.machineRented.lastMeasurementUser || 'Non défini'
+                      }
+                      valueType="text"
+                      isEditing={false}
+                      handleChange={() => {}}
+                    />
+                  </Grid>
                 </Grid>
               </CardContent>
             </Card>

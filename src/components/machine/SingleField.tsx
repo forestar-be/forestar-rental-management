@@ -42,6 +42,7 @@ interface Props {
   showLabelWhenNotEditing?: boolean;
   noValueDisplay?: string;
   shouldDisableDate?: (date: dayjs.Dayjs) => boolean;
+  caption?: React.ReactNode | string;
 }
 
 const DatePickerField: React.FC<Props> = ({
@@ -156,7 +157,9 @@ const SingleField: React.FC<Props> = ({
   showLabelWhenNotEditing = true,
   noValueDisplay = '-',
   shouldDisableDate,
+  caption,
 }) => {
+  console.log('caption', caption);
   useEffect(() => {
     if (
       valueType === 'guest_email_list' &&
@@ -271,6 +274,11 @@ const SingleField: React.FC<Props> = ({
             </Typography>
           )}
         </Box>
+      )}
+      {caption && (
+        <Typography variant="caption" color="text.secondary">
+          {caption}
+        </Typography>
       )}
     </Grid>
   );
