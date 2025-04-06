@@ -24,6 +24,9 @@ import {
   CardContent,
   CardHeader,
   CardMedia,
+  TextField,
+  Slider,
+  Divider,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
@@ -67,6 +70,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { getAvailableParts } from '../utils/api';
 import MaintenanceDialog from '../components/MaintenanceDialog';
 import MaintenanceHistory from '../components/MaintenanceHistory';
+import dayjs from 'dayjs';
 
 const SingleMachine = () => {
   const theme = useTheme();
@@ -284,6 +288,7 @@ const SingleMachine = () => {
     showLabelWhenNotEditing: boolean = true,
     onChange?: (value: string | Date | number | null | boolean) => void,
     noValueDisplay?: string,
+    caption?: React.ReactNode | string,
   ) => (
     <SingleField
       label={label}
@@ -297,6 +302,7 @@ const SingleMachine = () => {
       size={size}
       showLabelWhenNotEditing={showLabelWhenNotEditing}
       noValueDisplay={noValueDisplay}
+      caption={caption}
     />
   );
 
@@ -441,11 +447,21 @@ const SingleMachine = () => {
     return 'calc(100vh - 170px)';
   }, []);
 
+  const lastMeasurement = useMemo(() => {
+    return machine?.lastMeasurementUpdate ? (
+      <>
+        Dernière mise à jour:{' '}
+        {dayjs(machine.lastMeasurementUpdate).format('DD/MM/YYYY HH:mm')}
+        {machine.lastMeasurementUser && ` par ${machine.lastMeasurementUser}`}
+      </>
+    ) : undefined;
+  }, [machine]);
+
   return (
     <Box sx={{ padding: 4, paddingTop: 2, pb: 0 }}>
       {loading && <MachineLoading />}
       {machine && (
-        <Grid container spacing={2}>
+        <Grid container spacing={1}>
           <Grid item xs={4} mt={1}>
             <Card elevation={3}>
               <CardHeader
@@ -568,6 +584,63 @@ const SingleMachine = () => {
                     handleRemoveEmailGuest={handleRemoveEmailGuest}
                     size="small"
                   />
+                  <Grid item xs={12}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ mt: 2, mb: 0, fontWeight: 'medium' }}
+                    >
+                      Mesures de la machine
+                    </Typography>
+                    <Divider />
+                  </Grid>
+                  {/* Operating Hours Field */}
+                  {renderField(
+                    'Heures de fonctionnement',
+                    'operatingHours',
+                    machine.operatingHours,
+                    'number',
+                    false,
+                    isEditing,
+                    12,
+                    'small',
+                    undefined,
+                    undefined,
+                    undefined,
+                  )}
+                  {/* Fuel Level Field */}
+                  {isEditing ? (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Niveau de carburant ({machine.fuelLevel || 0}%)
+                      </Typography>
+                      <Slider
+                        value={machine.fuelLevel || 0}
+                        onChange={(_, value) =>
+                          handleChange(value as number, 'fuelLevel')
+                        }
+                        aria-labelledby="fuel-level-slider"
+                        step={1}
+                        marks
+                        min={0}
+                        max={100}
+                      />
+                    </Grid>
+                  ) : (
+                    renderField(
+                      'Niveau de carburant',
+                      'fuelLevel',
+                      `${machine.fuelLevel} %`,
+                      'text',
+                      false,
+                      false,
+                      12,
+                      'small',
+                      undefined,
+                      undefined,
+                      undefined,
+                      lastMeasurement,
+                    )
+                  )}
                 </Grid>
               </CardContent>
             </Card>
