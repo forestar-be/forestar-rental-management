@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../forestar-rental-operator"
+		},
+		{
+			"path": "../forestar-server"
+		}
+	]
+}

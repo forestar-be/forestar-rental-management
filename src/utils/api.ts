@@ -231,6 +231,12 @@ export const getAvailableParts = async (
   return await apiRequest('/rental-mngt/machine-rented/parts', 'GET', token);
 };
 
+export const getAvailableAccessories = async (
+  token: string,
+): Promise<{ accessories: { name: string; price_per_day: number }[] }> => {
+  return await apiRequest('/rental-mngt/accessories', 'GET', token);
+};
+
 export const fetchConfig = (token: string) =>
   apiRequest('/rental-mngt/config', 'GET', token);
 
