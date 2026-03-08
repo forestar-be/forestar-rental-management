@@ -187,6 +187,7 @@ const SingleRental = () => {
     rental?.returnDate,
     priceShipping,
     rental?.with_shipping,
+    rental?.accessories,
   ]);
 
   const togglePaidStatus = useCallback(() => {
@@ -600,6 +601,31 @@ const SingleRental = () => {
                       </Typography>
                     </Box>
                   </Grid>
+                  {rental.accessories && rental.accessories.length > 0 && (
+                    <Grid item xs={12}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 'medium' }}
+                      >
+                        Accessoires :
+                      </Typography>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        flexWrap="wrap"
+                        useFlexGap
+                      >
+                        {rental.accessories.map((acc) => (
+                          <Chip
+                            key={acc.accessoryName}
+                            label={`${acc.accessoryName} (${acc.price_per_day} €/jour)`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Stack>
+                    </Grid>
+                  )}
                   <SingleField
                     xs={12}
                     label="Invités"

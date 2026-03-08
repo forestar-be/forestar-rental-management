@@ -15,6 +15,7 @@ export interface MachineRental {
   with_shipping: boolean;
   depositToPay: boolean;
   finalTermsPdfId?: string;
+  accessories?: MachineRentedAccessory[];
 }
 
 export interface MachineRentalWithMachineRented extends MachineRental {
@@ -32,9 +33,15 @@ export interface MaintenanceHistory {
   notes: string;
 }
 
+export interface MachineRentedAccessory {
+  accessoryName: string;
+  price_per_day: number;
+}
+
 export interface MachineRented {
   id: string;
   name: string;
+  description: string | null;
   maintenance_type: 'BY_DAY' | 'BY_NB_RENTAL';
   nb_day_before_maintenance: number | null;
   nb_rental_before_maintenance: number | null;
@@ -44,6 +51,7 @@ export interface MachineRented {
   price_per_day: number;
   guests: string[];
   parts: MachineRentedPart[];
+  accessories: MachineRentedAccessory[];
   maintenanceHistories: MaintenanceHistory[];
   deposit: number;
   forbiddenRentalDays: Date[];
@@ -72,6 +80,7 @@ export type MachineRentedCreated = Omit<
   | 'last_maintenance_date'
   | 'maintenanceHistories'
   | 'parts'
+  | 'accessories'
   | 'forbiddenRentalDays'
 >;
 

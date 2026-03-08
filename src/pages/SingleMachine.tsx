@@ -36,6 +36,7 @@ import { MachineLoading } from '../components/machine/MachineLoading';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {
   MachineRentalWithMachineRented,
+  MachineRentedAccessory,
   MachineRentedPart,
   MachineRentedWithImage,
 } from '../utils/types';
@@ -43,6 +44,7 @@ import { Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
 import {
   deleteMachineApi,
   fetchMachineById,
+  getAvailableAccessories,
   updateMachine,
   updateMachineRentedImage,
 } from '../utils/api';
@@ -66,6 +68,7 @@ import {
   notifySuccess,
 } from '../utils/notifications';
 import MachineParts from '../components/machine/MachineParts';
+import MachineAccessories from '../components/machine/MachineAccessories';
 import { Add as AddIcon } from '@mui/icons-material';
 import { getAvailableParts } from '../utils/api';
 import MaintenanceDialog from '../components/MaintenanceDialog';
@@ -92,6 +95,9 @@ const SingleMachine = () => {
   const [maintenanceComment, setMaintenanceComment] = useState('');
 
   const [availableParts, setAvailableParts] = useState<string[]>([]);
+  const [availableAccessories, setAvailableAccessories] = useState<
+    { name: string; price_per_day: number }[]
+  >([]);
 
   const switchEditing = useCallback(async () => {
     if (!isEditing) {
@@ -274,6 +280,16 @@ const SingleMachine = () => {
       .catch((err) => {
         console.error('Erreur lors du chargement des pièces existantes', err);
       });
+    getAvailableAccessories(auth.token)
+      .then((data) => {
+        setAvailableAccessories(data.accessories);
+      })
+      .catch((err) => {
+        console.error(
+          'Erreur lors du chargement des accessoires existants',
+          err,
+        );
+      });
   }, [auth.token]);
 
   const renderField = (
@@ -390,6 +406,16 @@ const SingleMachine = () => {
       parts: newParts,
     }));
   }, []);
+
+  const updateAccessories = useCallback(
+    (newAccessories: MachineRentedAccessory[]) => {
+      setMachine((prevMachine) => ({
+        ...prevMachine!,
+        accessories: newAccessories,
+      }));
+    },
+    [],
+  );
 
   const handleMaintenanceDone = async (date: Date | null, comment: string) => {
     if (!id) return;
@@ -563,6 +589,16 @@ const SingleMachine = () => {
                       : formatPriceNumberToFrenchFormatStr(machine.deposit),
                     isEditing ? 'number' : 'text',
                     false,
+                    isEditing,
+                    12,
+                    'small',
+                  )}
+                  {renderField(
+                    'Description',
+                    'description',
+                    machine.description,
+                    'text',
+                    true,
                     isEditing,
                     12,
                     'small',
@@ -772,6 +808,14 @@ const SingleMachine = () => {
                       isEditing={isEditing}
                       onChange={updateParts}
                       availableParts={availableParts}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <MachineAccessories
+                      accessories={machine.accessories || []}
+                      isEditing={isEditing}
+                      onChange={updateAccessories}
+                      availableAccessories={availableAccessories}
                     />
                   </Grid>
                 </Grid>

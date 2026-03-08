@@ -1,6 +1,7 @@
 import {
   MachineRentalToCreate,
   MachineRentalWithMachineRented,
+  MachineRentedAccessory,
   MachineRentedSimpleWithImage,
 } from '../utils/types';
 import {
@@ -25,6 +26,8 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
+  Chip,
+  Stack,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
@@ -174,6 +177,25 @@ const CreateRentalDialog = (props: {
     [props.formik.values.guests],
   );
 
+  const selectedAccessories: MachineRentedAccessory[] =
+    props.formik.values.accessories || [];
+
+  const toggleAccessory = useCallback(
+    (acc: MachineRentedAccessory) => {
+      const current = props.formik.values.accessories || [];
+      const exists = current.some((a) => a.accessoryName === acc.accessoryName);
+      if (exists) {
+        props.formik.setFieldValue(
+          'accessories',
+          current.filter((a) => a.accessoryName !== acc.accessoryName),
+        );
+      } else {
+        props.formik.setFieldValue('accessories', [...current, acc]);
+      }
+    },
+    [props.formik],
+  );
+
   return (
     <Dialog open={props.open} onClose={props.onClose} fullWidth maxWidth="lg">
       <DialogTitle>
@@ -206,6 +228,7 @@ const CreateRentalDialog = (props: {
                     rentalDate: props.formik.values.rentalDate,
                     returnDate: props.formik.values.returnDate,
                     with_shipping: props.formik.values.with_shipping,
+                    accessories: selectedAccessories,
                   },
                   priceShipping,
                 ),
@@ -470,6 +493,35 @@ const CreateRentalDialog = (props: {
                 sx={{ alignSelf: 'flex-start' }}
               />
             </Box>
+            {props.selectedMachine?.accessories &&
+              props.selectedMachine.accessories.length > 0 && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1,
+                    gridColumn: { md: 'span 2' },
+                  }}
+                >
+                  <Typography variant="subtitle2">Accessoires</Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {props.selectedMachine.accessories.map((acc) => {
+                      const isSelected = selectedAccessories.some(
+                        (a) => a.accessoryName === acc.accessoryName,
+                      );
+                      return (
+                        <Chip
+                          key={acc.accessoryName}
+                          label={`${acc.accessoryName} (${acc.price_per_day} €/jour)`}
+                          onClick={() => toggleAccessory(acc)}
+                          color={isSelected ? 'primary' : 'default'}
+                          variant={isSelected ? 'filled' : 'outlined'}
+                        />
+                      );
+                    })}
+                  </Stack>
+                </Box>
+              )}
           </Box>
           <DialogActions>
             <Button onClick={props.onClose} color="secondary">

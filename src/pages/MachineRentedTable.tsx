@@ -70,6 +70,7 @@ const MachineRentedTable: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [initialValues, setInitialValues] = useState<MachineRentedCreated>({
     name: '',
+    description: null,
     maintenance_type: 'BY_DAY',
     nb_day_before_maintenance: 0,
     nb_rental_before_maintenance: null,
@@ -118,6 +119,7 @@ const MachineRentedTable: React.FC = () => {
         setIsModalOpen(false);
         setInitialValues({
           name: '',
+          description: null,
           maintenance_type: 'BY_DAY',
           nb_day_before_maintenance: 0,
           nb_rental_before_maintenance: null,
