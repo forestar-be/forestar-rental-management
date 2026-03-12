@@ -9,56 +9,87 @@ import {
   CardHeader,
   Card,
   CardContent,
+  MenuItem,
+  Select,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { AddCircleOutline, Delete } from '@mui/icons-material';
-import { MachineRentedAccessory } from '../../utils/types';
+import { MachineRentedAddon } from '../../utils/types';
 
-interface MachineAccessoriesProps {
-  accessories: MachineRentedAccessory[];
+interface MachineAddonsProps {
+  addons: MachineRentedAddon[];
   isEditing: boolean;
-  onChange: (newAccessories: MachineRentedAccessory[]) => void;
-  availableAccessories: { name: string; price_per_day: number }[];
+  onChange: (newAddons: MachineRentedAddon[]) => void;
+  availableAddons: { name: string; price: number; category: string }[];
+  category: 'accessory' | 'option';
+  title: string;
 }
 
-const MachineAccessories: React.FC<MachineAccessoriesProps> = ({
-  accessories,
+const MachineAddons: React.FC<MachineAddonsProps> = ({
+  addons,
   isEditing,
   onChange,
-  availableAccessories,
+  availableAddons,
+  category,
+  title,
 }) => {
   const theme = useTheme();
 
   const handleNameChange = (index: number, value: string) => {
-    const newAccessories = [...accessories];
-    // If selecting from autocomplete, find the matching price
-    const existing = availableAccessories.find((a) => a.name === value);
-    newAccessories[index] = {
-      accessoryName: value,
-      price_per_day:
-        existing?.price_per_day ?? newAccessories[index].price_per_day,
+    const newAddons = [...addons];
+    const existing = availableAddons.find((a) => a.name === value);
+    newAddons[index] = {
+      ...newAddons[index],
+      addonName: value,
+      price: existing?.price ?? newAddons[index].price,
     };
-    onChange(newAccessories);
+    onChange(newAddons);
   };
 
   const handlePriceChange = (index: number, value: number) => {
-    const newAccessories = [...accessories];
-    newAccessories[index] = { ...newAccessories[index], price_per_day: value };
-    onChange(newAccessories);
+    const newAddons = [...addons];
+    newAddons[index] = { ...newAddons[index], price: value };
+    onChange(newAddons);
+  };
+
+  const handlePriceTypeChange = (index: number, value: string) => {
+    const newAddons = [...addons];
+    newAddons[index] = { ...newAddons[index], price_type: value };
+    onChange(newAddons);
+  };
+
+  const handleQuantityEnabledChange = (index: number, value: boolean) => {
+    const newAddons = [...addons];
+    newAddons[index] = {
+      ...newAddons[index],
+      quantity_enabled: value,
+    };
+    onChange(newAddons);
   };
 
   const handleAdd = () => {
-    onChange([...accessories, { accessoryName: '', price_per_day: 0 }]);
+    onChange([
+      ...addons,
+      {
+        addonName: '',
+        price: 0,
+        category,
+        price_type: 'per_day',
+        quantity_enabled: false,
+      },
+    ]);
   };
 
   const handleRemove = (index: number) => {
-    onChange(accessories.filter((_, i) => i !== index));
+    onChange(addons.filter((_, i) => i !== index));
   };
 
   if (!isEditing) {
     return (
       <Card>
         <CardHeader
-          title="Accessoires facultatifs"
+          title={title}
           titleTypographyProps={{ variant: 'h6' }}
           sx={{
             backgroundColor: theme.palette.primary.main,
@@ -67,8 +98,8 @@ const MachineAccessories: React.FC<MachineAccessoriesProps> = ({
           }}
         />
         <CardContent>
-          {accessories.length === 0 ? (
-            <Typography variant="subtitle1">Aucun accessoire.</Typography>
+          {addons.length === 0 ? (
+            <Typography variant="subtitle1">Aucun élément.</Typography>
           ) : (
             <Box
               display="flex"
@@ -76,9 +107,11 @@ const MachineAccessories: React.FC<MachineAccessoriesProps> = ({
               gap="10px"
               margin="5px 0"
             >
-              {accessories.map((acc, index) => (
+              {addons.map((addon, index) => (
                 <Typography key={index} variant="subtitle1">
-                  {acc.accessoryName} — {acc.price_per_day} €/jour
+                  {addon.addonName} — {addon.price} €
+                  {addon.price_type === 'per_day' ? '/jour' : ''}
+                  {addon.quantity_enabled ? ' (quantité activée)' : ''}
                 </Typography>
               ))}
             </Box>
@@ -91,7 +124,7 @@ const MachineAccessories: React.FC<MachineAccessoriesProps> = ({
   return (
     <Card>
       <CardHeader
-        title="Accessoires facultatifs"
+        title={title}
         titleTypographyProps={{ variant: 'h6' }}
         sx={{
           backgroundColor: theme.palette.primary.main,
@@ -100,13 +133,13 @@ const MachineAccessories: React.FC<MachineAccessoriesProps> = ({
         }}
       />
       <CardContent>
-        {accessories.map((acc, index) => (
+        {addons.map((addon, index) => (
           <Box key={index} display="flex" alignItems="center" mb={2} gap={1}>
             <Autocomplete
               size="small"
               freeSolo
-              options={availableAccessories.map((a) => a.name)}
-              value={acc.accessoryName}
+              options={availableAddons.map((a) => a.name)}
+              value={addon.addonName}
               onChange={(_, newValue) => {
                 if (newValue !== null) handleNameChange(index, newValue);
               }}
@@ -116,7 +149,7 @@ const MachineAccessories: React.FC<MachineAccessoriesProps> = ({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label={`Accessoire ${index + 1}`}
+                  label={`Élément ${index + 1}`}
                   variant="outlined"
                   sx={{ margin: params.size === 'small' ? '8px 0' : '5px 0' }}
                 />
@@ -126,13 +159,35 @@ const MachineAccessories: React.FC<MachineAccessoriesProps> = ({
             <TextField
               size="small"
               type="number"
-              label="€/jour"
-              value={acc.price_per_day}
+              label="Prix"
+              value={addon.price}
               onChange={(e) =>
                 handlePriceChange(index, parseFloat(e.target.value) || 0)
               }
               sx={{ flex: 1 }}
               inputProps={{ min: 0, step: 0.01 }}
+            />
+            <Select
+              size="small"
+              value={addon.price_type}
+              onChange={(e) => handlePriceTypeChange(index, e.target.value)}
+              sx={{ flex: 1 }}
+            >
+              <MenuItem value="per_day">€/jour</MenuItem>
+              <MenuItem value="unit">Unitaire</MenuItem>
+            </Select>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  checked={addon.quantity_enabled}
+                  onChange={(e) =>
+                    handleQuantityEnabledChange(index, e.target.checked)
+                  }
+                />
+              }
+              label="Qté"
+              sx={{ ml: 0 }}
             />
             <IconButton onClick={() => handleRemove(index)}>
               <Delete />
@@ -147,4 +202,4 @@ const MachineAccessories: React.FC<MachineAccessoriesProps> = ({
   );
 };
 
-export default MachineAccessories;
+export default MachineAddons;

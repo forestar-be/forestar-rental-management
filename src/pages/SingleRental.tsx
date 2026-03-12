@@ -16,6 +16,7 @@ import {
   Paper,
   Stack,
   Chip,
+  TextField,
   useMediaQuery,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
@@ -39,7 +40,11 @@ import {
   updateMachineRental,
 } from '../utils/api';
 import { toast } from 'react-toastify';
-import { MachineRental, MachineRentalWithMachineRented } from '../utils/types';
+import {
+  MachineRental,
+  MachineRentalAddon,
+  MachineRentalWithMachineRented,
+} from '../utils/types';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
@@ -187,7 +192,7 @@ const SingleRental = () => {
     rental?.returnDate,
     priceShipping,
     rental?.with_shipping,
-    rental?.accessories,
+    rental?.addons,
   ]);
 
   const togglePaidStatus = useCallback(() => {
@@ -236,6 +241,55 @@ const SingleRental = () => {
           };
         }
         return null;
+      });
+    },
+    [],
+  );
+
+  const toggleAddon = useCallback(
+    (machineAddon: {
+      addonName: string;
+      price: number;
+      price_type: string;
+    }) => {
+      setRental((prev) => {
+        if (!prev) return null;
+        const current = prev.addons || [];
+        const exists = current.some(
+          (a) => a.addonName === machineAddon.addonName,
+        );
+        if (exists) {
+          return {
+            ...prev,
+            addons: current.filter(
+              (a) => a.addonName !== machineAddon.addonName,
+            ),
+          };
+        }
+        const newAddon: MachineRentalAddon = {
+          addonName: machineAddon.addonName,
+          price: machineAddon.price,
+          price_type: machineAddon.price_type,
+          quantity: 1,
+        };
+        return { ...prev, addons: [...current, newAddon] };
+      });
+    },
+    [],
+  );
+
+  const updateAddonQuantity = useCallback(
+    (addonName: string, quantity: number) => {
+      setRental((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          addons: (prev.addons || []).map((a) =>
+            a.addonName === addonName
+              ? { ...a, quantity: Math.max(1, quantity) }
+              : a,
+          ),
+        };
       });
     },
     [],
@@ -601,31 +655,211 @@ const SingleRental = () => {
                       </Typography>
                     </Box>
                   </Grid>
-                  {rental.accessories && rental.accessories.length > 0 && (
-                    <Grid item xs={12}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 'medium' }}
-                      >
-                        Accessoires :
-                      </Typography>
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        flexWrap="wrap"
-                        useFlexGap
-                      >
-                        {rental.accessories.map((acc) => (
-                          <Chip
-                            key={acc.accessoryName}
-                            label={`${acc.accessoryName} (${acc.price_per_day} €/jour)`}
-                            size="small"
-                            variant="outlined"
-                          />
-                        ))}
-                      </Stack>
-                    </Grid>
-                  )}
+                  {isEditing &&
+                    rental.machineRented.addons &&
+                    rental.machineRented.addons.filter(
+                      (a) => a.category === 'accessory',
+                    ).length > 0 && (
+                      <Grid item xs={12}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 'medium' }}
+                        >
+                          Accessoires :
+                        </Typography>
+                        {rental.machineRented.addons
+                          .filter((a) => a.category === 'accessory')
+                          .map((machineAddon) => {
+                            const selected = (rental.addons || []).find(
+                              (a) => a.addonName === machineAddon.addonName,
+                            );
+                            const isSelected = !!selected;
+                            return (
+                              <Box
+                                key={machineAddon.addonName}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                }}
+                              >
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onChange={() => toggleAddon(machineAddon)}
+                                      size="small"
+                                    />
+                                  }
+                                  label={`${machineAddon.addonName} (${machineAddon.price} €${machineAddon.price_type === 'per_day' ? '/jour' : ''})`}
+                                />
+                                {isSelected &&
+                                  machineAddon.quantity_enabled && (
+                                    <TextField
+                                      type="number"
+                                      label="Qté"
+                                      size="small"
+                                      sx={{ width: 80 }}
+                                      value={selected!.quantity}
+                                      onChange={(e) =>
+                                        updateAddonQuantity(
+                                          machineAddon.addonName,
+                                          parseInt(e.target.value) || 1,
+                                        )
+                                      }
+                                      inputProps={{ min: 1 }}
+                                    />
+                                  )}
+                              </Box>
+                            );
+                          })}
+                      </Grid>
+                    )}
+                  {isEditing &&
+                    rental.machineRented.addons &&
+                    rental.machineRented.addons.filter(
+                      (a) => a.category === 'option',
+                    ).length > 0 && (
+                      <Grid item xs={12}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 'medium' }}
+                        >
+                          Options :
+                        </Typography>
+                        {rental.machineRented.addons
+                          .filter((a) => a.category === 'option')
+                          .map((machineAddon) => {
+                            const selected = (rental.addons || []).find(
+                              (a) => a.addonName === machineAddon.addonName,
+                            );
+                            const isSelected = !!selected;
+                            return (
+                              <Box
+                                key={machineAddon.addonName}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                }}
+                              >
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onChange={() => toggleAddon(machineAddon)}
+                                      size="small"
+                                    />
+                                  }
+                                  label={`${machineAddon.addonName} (${machineAddon.price} €${machineAddon.price_type === 'per_day' ? '/jour' : ''})`}
+                                />
+                                {isSelected &&
+                                  machineAddon.quantity_enabled && (
+                                    <TextField
+                                      type="number"
+                                      label="Qté"
+                                      size="small"
+                                      sx={{ width: 80 }}
+                                      value={selected!.quantity}
+                                      onChange={(e) =>
+                                        updateAddonQuantity(
+                                          machineAddon.addonName,
+                                          parseInt(e.target.value) || 1,
+                                        )
+                                      }
+                                      inputProps={{ min: 1 }}
+                                    />
+                                  )}
+                              </Box>
+                            );
+                          })}
+                      </Grid>
+                    )}
+                  {!isEditing &&
+                    rental.addons &&
+                    rental.addons.filter((a) => {
+                      const machineAddon = rental.machineRented.addons?.find(
+                        (ma) => ma.addonName === a.addonName,
+                      );
+                      return (
+                        !machineAddon || machineAddon.category === 'accessory'
+                      );
+                    }).length > 0 && (
+                      <Grid item xs={12}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 'medium' }}
+                        >
+                          Accessoires :
+                        </Typography>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          flexWrap="wrap"
+                          useFlexGap
+                        >
+                          {rental.addons
+                            .filter((a) => {
+                              const machineAddon =
+                                rental.machineRented.addons?.find(
+                                  (ma) => ma.addonName === a.addonName,
+                                );
+                              return (
+                                !machineAddon ||
+                                machineAddon.category === 'accessory'
+                              );
+                            })
+                            .map((addon) => (
+                              <Chip
+                                key={addon.addonName}
+                                label={`${addon.addonName} (${addon.price} €${addon.price_type === 'per_day' ? '/jour' : ''}${addon.quantity > 1 ? ` x${addon.quantity}` : ''})`}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ))}
+                        </Stack>
+                      </Grid>
+                    )}
+                  {!isEditing &&
+                    rental.addons &&
+                    rental.addons.filter((a) => {
+                      const machineAddon = rental.machineRented.addons?.find(
+                        (ma) => ma.addonName === a.addonName,
+                      );
+                      return machineAddon?.category === 'option';
+                    }).length > 0 && (
+                      <Grid item xs={12}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 'medium' }}
+                        >
+                          Options :
+                        </Typography>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          flexWrap="wrap"
+                          useFlexGap
+                        >
+                          {rental.addons
+                            .filter((a) => {
+                              const machineAddon =
+                                rental.machineRented.addons?.find(
+                                  (ma) => ma.addonName === a.addonName,
+                                );
+                              return machineAddon?.category === 'option';
+                            })
+                            .map((addon) => (
+                              <Chip
+                                key={addon.addonName}
+                                label={`${addon.addonName} (${addon.price} €${addon.price_type === 'per_day' ? '/jour' : ''}${addon.quantity > 1 ? ` x${addon.quantity}` : ''})`}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ))}
+                        </Stack>
+                      </Grid>
+                    )}
                   <SingleField
                     xs={12}
                     label="Invités"

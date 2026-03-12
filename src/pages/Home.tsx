@@ -117,7 +117,7 @@ const Home = (): JSX.Element => {
       with_shipping: false,
       paid: false,
       depositToPay: false,
-      accessories: [],
+      addons: [],
     },
     validationSchema: validationSchema,
     onSubmit: async (values: MachineRentalToCreate) => {
@@ -133,10 +133,14 @@ const Home = (): JSX.Element => {
         // remove empty guests
         values.guests = values.guests.filter((guest) => !!guest);
         setLoadingCreate(true);
-        const { accessories, ...rentalData } = values;
+        const { addons, ...rentalData } = values;
         const payload = {
           ...rentalData,
-          accessoryNames: (accessories || []).map((a) => a.accessoryName),
+          rentalAddons: (addons || []).map((a) => ({
+            addonName: a.addonName,
+            quantity: 1,
+            price_type: a.price_type,
+          })),
         };
         // Appel à l'API pour créer une machine louée
         await createMachineRental(selectedMachine.id, payload, auth.token);

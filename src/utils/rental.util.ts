@@ -8,7 +8,11 @@ export const calculateTotalPrice = (
     rentalDate: Date | null;
     returnDate: Date | null;
     with_shipping: boolean;
-    accessories?: { accessoryName: string; price_per_day: number }[];
+    addons?: {
+      price: number;
+      price_type: string;
+      quantity: number;
+    }[];
   } | null,
   priceShipping: number,
 ) => {
@@ -22,13 +26,14 @@ export const calculateTotalPrice = (
     const endDate = dayjs(rental.returnDate);
     const diffDays = endDate.diff(startDate, 'day') + 1; // +1 to include the first day
 
-    const accessoriesPricePerDay = (rental.accessories || []).reduce(
-      (sum, a) => sum + a.price_per_day,
-      0,
-    );
+    const addonsTotal = (rental.addons || []).reduce((sum, addon) => {
+      const multiplier = addon.price_type === 'per_day' ? diffDays : 1;
+      return sum + addon.price * addon.quantity * multiplier;
+    }, 0);
 
     return (
-      (price_per_day + accessoriesPricePerDay) * diffDays +
+      price_per_day * diffDays +
+      addonsTotal +
       (rental.with_shipping ? priceShipping : 0)
     );
   }

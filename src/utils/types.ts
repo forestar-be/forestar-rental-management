@@ -1,3 +1,10 @@
+export interface MachineRentalAddon {
+  addonName: string;
+  price: number;
+  price_type: string;
+  quantity: number;
+}
+
 export interface MachineRental {
   id: string;
   machineRentedId: string;
@@ -15,7 +22,7 @@ export interface MachineRental {
   with_shipping: boolean;
   depositToPay: boolean;
   finalTermsPdfId?: string;
-  accessories?: MachineRentedAccessory[];
+  addons?: MachineRentalAddon[];
 }
 
 export interface MachineRentalWithMachineRented extends MachineRental {
@@ -33,9 +40,12 @@ export interface MaintenanceHistory {
   notes: string;
 }
 
-export interface MachineRentedAccessory {
-  accessoryName: string;
-  price_per_day: number;
+export interface MachineRentedAddon {
+  addonName: string;
+  price: number;
+  category: string;
+  price_type: string;
+  quantity_enabled: boolean;
 }
 
 export interface MachineRented {
@@ -51,7 +61,7 @@ export interface MachineRented {
   price_per_day: number;
   guests: string[];
   parts: MachineRentedPart[];
-  accessories: MachineRentedAccessory[];
+  addons: MachineRentedAddon[];
   maintenanceHistories: MaintenanceHistory[];
   deposit: number;
   forbiddenRentalDays: Date[];
@@ -80,7 +90,7 @@ export type MachineRentedCreated = Omit<
   | 'last_maintenance_date'
   | 'maintenanceHistories'
   | 'parts'
-  | 'accessories'
+  | 'addons'
   | 'forbiddenRentalDays'
 >;
 
