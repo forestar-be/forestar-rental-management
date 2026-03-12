@@ -36,7 +36,7 @@ import { MachineLoading } from '../components/machine/MachineLoading';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {
   MachineRentalWithMachineRented,
-  MachineRentedAccessory,
+  MachineRentedAddon,
   MachineRentedPart,
   MachineRentedWithImage,
 } from '../utils/types';
@@ -44,7 +44,7 @@ import { Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
 import {
   deleteMachineApi,
   fetchMachineById,
-  getAvailableAccessories,
+  getAvailableAddons,
   updateMachine,
   updateMachineRentedImage,
 } from '../utils/api';
@@ -68,7 +68,7 @@ import {
   notifySuccess,
 } from '../utils/notifications';
 import MachineParts from '../components/machine/MachineParts';
-import MachineAccessories from '../components/machine/MachineAccessories';
+import MachineAddons from '../components/machine/MachineAccessories';
 import { Add as AddIcon } from '@mui/icons-material';
 import { getAvailableParts } from '../utils/api';
 import MaintenanceDialog from '../components/MaintenanceDialog';
@@ -95,8 +95,8 @@ const SingleMachine = () => {
   const [maintenanceComment, setMaintenanceComment] = useState('');
 
   const [availableParts, setAvailableParts] = useState<string[]>([]);
-  const [availableAccessories, setAvailableAccessories] = useState<
-    { name: string; price_per_day: number }[]
+  const [availableAddons, setAvailableAddons] = useState<
+    { name: string; price: number; category: string }[]
   >([]);
 
   const switchEditing = useCallback(async () => {
@@ -280,9 +280,9 @@ const SingleMachine = () => {
       .catch((err) => {
         console.error('Erreur lors du chargement des pièces existantes', err);
       });
-    getAvailableAccessories(auth.token)
+    getAvailableAddons(auth.token)
       .then((data) => {
-        setAvailableAccessories(data.accessories);
+        setAvailableAddons(data.addons);
       })
       .catch((err) => {
         console.error(
@@ -407,15 +407,12 @@ const SingleMachine = () => {
     }));
   }, []);
 
-  const updateAccessories = useCallback(
-    (newAccessories: MachineRentedAccessory[]) => {
-      setMachine((prevMachine) => ({
-        ...prevMachine!,
-        accessories: newAccessories,
-      }));
-    },
-    [],
-  );
+  const updateAddons = useCallback((newAddons: MachineRentedAddon[]) => {
+    setMachine((prevMachine) => ({
+      ...prevMachine!,
+      addons: newAddons,
+    }));
+  }, []);
 
   const handleMaintenanceDone = async (date: Date | null, comment: string) => {
     if (!id) return;
@@ -811,11 +808,45 @@ const SingleMachine = () => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <MachineAccessories
-                      accessories={machine.accessories || []}
+                    <MachineAddons
+                      addons={(machine.addons || []).filter(
+                        (a) => a.category === 'accessory',
+                      )}
                       isEditing={isEditing}
-                      onChange={updateAccessories}
-                      availableAccessories={availableAccessories}
+                      onChange={(newAddons) =>
+                        updateAddons([
+                          ...newAddons,
+                          ...(machine.addons || []).filter(
+                            (a) => a.category === 'option',
+                          ),
+                        ])
+                      }
+                      availableAddons={availableAddons.filter(
+                        (a) => a.category === 'accessory',
+                      )}
+                      category="accessory"
+                      title="Accessoires"
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <MachineAddons
+                      addons={(machine.addons || []).filter(
+                        (a) => a.category === 'option',
+                      )}
+                      isEditing={isEditing}
+                      onChange={(newAddons) =>
+                        updateAddons([
+                          ...(machine.addons || []).filter(
+                            (a) => a.category === 'accessory',
+                          ),
+                          ...newAddons,
+                        ])
+                      }
+                      availableAddons={availableAddons.filter(
+                        (a) => a.category === 'option',
+                      )}
+                      category="option"
+                      title="Options"
                     />
                   </Grid>
                 </Grid>

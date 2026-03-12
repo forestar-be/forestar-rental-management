@@ -1,7 +1,8 @@
 import {
+  MachineRentalAddon,
   MachineRentalToCreate,
   MachineRentalWithMachineRented,
-  MachineRentedAccessory,
+  MachineRentedAddon,
   MachineRentedSimpleWithImage,
 } from '../utils/types';
 import {
@@ -26,8 +27,6 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
-  Chip,
-  Stack,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
@@ -177,21 +176,41 @@ const CreateRentalDialog = (props: {
     [props.formik.values.guests],
   );
 
-  const selectedAccessories: MachineRentedAccessory[] =
-    props.formik.values.accessories || [];
+  const selectedAddons: MachineRentalAddon[] = props.formik.values.addons || [];
 
-  const toggleAccessory = useCallback(
-    (acc: MachineRentedAccessory) => {
-      const current = props.formik.values.accessories || [];
-      const exists = current.some((a) => a.accessoryName === acc.accessoryName);
+  const toggleAddon = useCallback(
+    (addon: MachineRentedAddon) => {
+      const current = props.formik.values.addons || [];
+      const exists = current.some((a) => a.addonName === addon.addonName);
       if (exists) {
         props.formik.setFieldValue(
-          'accessories',
-          current.filter((a) => a.accessoryName !== acc.accessoryName),
+          'addons',
+          current.filter((a) => a.addonName !== addon.addonName),
         );
       } else {
-        props.formik.setFieldValue('accessories', [...current, acc]);
+        const rentalAddon: MachineRentalAddon = {
+          addonName: addon.addonName,
+          price: addon.price,
+          price_type: addon.price_type,
+          quantity: 1,
+        };
+        props.formik.setFieldValue('addons', [...current, rentalAddon]);
       }
+    },
+    [props.formik],
+  );
+
+  const updateAddonQuantity = useCallback(
+    (addonName: string, quantity: number) => {
+      const current = props.formik.values.addons || [];
+      props.formik.setFieldValue(
+        'addons',
+        current.map((a) =>
+          a.addonName === addonName
+            ? { ...a, quantity: Math.max(1, quantity) }
+            : a,
+        ),
+      );
     },
     [props.formik],
   );
@@ -228,7 +247,11 @@ const CreateRentalDialog = (props: {
                     rentalDate: props.formik.values.rentalDate,
                     returnDate: props.formik.values.returnDate,
                     with_shipping: props.formik.values.with_shipping,
-                    accessories: selectedAccessories,
+                    addons: selectedAddons.map((a) => ({
+                      price: a.price,
+                      price_type: a.price_type,
+                      quantity: a.quantity,
+                    })),
                   },
                   priceShipping,
                 ),
@@ -493,8 +516,10 @@ const CreateRentalDialog = (props: {
                 sx={{ alignSelf: 'flex-start' }}
               />
             </Box>
-            {props.selectedMachine?.accessories &&
-              props.selectedMachine.accessories.length > 0 && (
+            {props.selectedMachine?.addons &&
+              props.selectedMachine.addons.filter(
+                (a) => a.category === 'accessory',
+              ).length > 0 && (
                 <Box
                   sx={{
                     display: 'flex',
@@ -504,22 +529,109 @@ const CreateRentalDialog = (props: {
                   }}
                 >
                   <Typography variant="subtitle2">Accessoires</Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {props.selectedMachine.accessories.map((acc) => {
-                      const isSelected = selectedAccessories.some(
-                        (a) => a.accessoryName === acc.accessoryName,
+                  {props.selectedMachine.addons
+                    .filter((a) => a.category === 'accessory')
+                    .map((addon) => {
+                      const selected = selectedAddons.find(
+                        (a) => a.addonName === addon.addonName,
                       );
+                      const isSelected = !!selected;
                       return (
-                        <Chip
-                          key={acc.accessoryName}
-                          label={`${acc.accessoryName} (${acc.price_per_day} €/jour)`}
-                          onClick={() => toggleAccessory(acc)}
-                          color={isSelected ? 'primary' : 'default'}
-                          variant={isSelected ? 'filled' : 'outlined'}
-                        />
+                        <Box
+                          key={addon.addonName}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => toggleAddon(addon)}
+                              />
+                            }
+                            label={`${addon.addonName} (${addon.price} €${addon.price_type === 'per_day' ? '/jour' : ''})`}
+                          />
+                          {isSelected && addon.quantity_enabled && (
+                            <TextField
+                              type="number"
+                              label="Qté"
+                              size="small"
+                              sx={{ width: 80 }}
+                              value={selected!.quantity}
+                              onChange={(e) =>
+                                updateAddonQuantity(
+                                  addon.addonName,
+                                  parseInt(e.target.value) || 1,
+                                )
+                              }
+                              inputProps={{ min: 1 }}
+                            />
+                          )}
+                        </Box>
                       );
                     })}
-                  </Stack>
+                </Box>
+              )}
+            {props.selectedMachine?.addons &&
+              props.selectedMachine.addons.filter(
+                (a) => a.category === 'option',
+              ).length > 0 && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1,
+                    gridColumn: { md: 'span 2' },
+                  }}
+                >
+                  <Typography variant="subtitle2">Options</Typography>
+                  {props.selectedMachine.addons
+                    .filter((a) => a.category === 'option')
+                    .map((addon) => {
+                      const selected = selectedAddons.find(
+                        (a) => a.addonName === addon.addonName,
+                      );
+                      const isSelected = !!selected;
+                      return (
+                        <Box
+                          key={addon.addonName}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => toggleAddon(addon)}
+                              />
+                            }
+                            label={`${addon.addonName} (${addon.price} €${addon.price_type === 'per_day' ? '/jour' : ''})`}
+                          />
+                          {isSelected && addon.quantity_enabled && (
+                            <TextField
+                              type="number"
+                              label="Qté"
+                              size="small"
+                              sx={{ width: 80 }}
+                              value={selected!.quantity}
+                              onChange={(e) =>
+                                updateAddonQuantity(
+                                  addon.addonName,
+                                  parseInt(e.target.value) || 1,
+                                )
+                              }
+                              inputProps={{ min: 1 }}
+                            />
+                          )}
+                        </Box>
+                      );
+                    })}
                 </Box>
               )}
           </Box>
