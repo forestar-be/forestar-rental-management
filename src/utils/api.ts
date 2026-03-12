@@ -237,6 +237,12 @@ export const getAvailableAddons = async (
   return await apiRequest('/rental-mngt/addons', 'GET', token);
 };
 
+export const getAvailableCategories = async (
+  token: string,
+): Promise<{ categories: string[] }> => {
+  return await apiRequest('/rental-mngt/categories', 'GET', token);
+};
+
 export const fetchConfig = (token: string) =>
   apiRequest('/rental-mngt/config', 'GET', token);
 

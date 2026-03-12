@@ -37,6 +37,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import {
   MachineRentalWithMachineRented,
   MachineRentedAddon,
+  MachineRentedCategory,
   MachineRentedPart,
   MachineRentedWithImage,
 } from '../utils/types';
@@ -45,6 +46,7 @@ import {
   deleteMachineApi,
   fetchMachineById,
   getAvailableAddons,
+  getAvailableCategories,
   updateMachine,
   updateMachineRentedImage,
 } from '../utils/api';
@@ -69,6 +71,7 @@ import {
 } from '../utils/notifications';
 import MachineParts from '../components/machine/MachineParts';
 import MachineAddons from '../components/machine/MachineAccessories';
+import MachineCategories from '../components/machine/MachineCategories';
 import { Add as AddIcon } from '@mui/icons-material';
 import { getAvailableParts } from '../utils/api';
 import MaintenanceDialog from '../components/MaintenanceDialog';
@@ -98,10 +101,11 @@ const SingleMachine = () => {
   const [availableAddons, setAvailableAddons] = useState<
     { name: string; price: number; category: string }[]
   >([]);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
   const switchEditing = useCallback(async () => {
     if (!isEditing) {
-      setTabValue(1); // Switch to 'Entretiens & Pièces' tab when editing starts
+      setTabValue(1); // Switch to 'Configuration' tab when editing starts
     }
     if (isEditing && initialMachine && machine) {
       // Préparer les mises à jour de la machine
@@ -290,6 +294,16 @@ const SingleMachine = () => {
           err,
         );
       });
+    getAvailableCategories(auth.token)
+      .then((data) => {
+        setAvailableCategories(data.categories);
+      })
+      .catch((err) => {
+        console.error(
+          'Erreur lors du chargement des catégories existantes',
+          err,
+        );
+      });
   }, [auth.token]);
 
   const renderField = (
@@ -413,6 +427,16 @@ const SingleMachine = () => {
       addons: newAddons,
     }));
   }, []);
+
+  const updateCategories = useCallback(
+    (newCategories: MachineRentedCategory[]) => {
+      setMachine((prevMachine) => ({
+        ...prevMachine!,
+        categories: newCategories,
+      }));
+    },
+    [],
+  );
 
   const handleMaintenanceDone = async (date: Date | null, comment: string) => {
     if (!id) return;
@@ -726,7 +750,7 @@ const SingleMachine = () => {
                   textColor="primary"
                 >
                   <Tab label="Locations" />
-                  <Tab label="Entretiens & Pièces" />
+                  <Tab label="Configuration" />
                 </Tabs>
               </Grid>
               <Grid item display={'flex'} flexDirection={'row'} gap={4}>
@@ -847,6 +871,14 @@ const SingleMachine = () => {
                       )}
                       category="option"
                       title="Options"
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <MachineCategories
+                      categories={machine.categories || []}
+                      isEditing={isEditing}
+                      onChange={updateCategories}
+                      availableCategories={availableCategories}
                     />
                   </Grid>
                 </Grid>
