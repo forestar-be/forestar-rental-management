@@ -48,6 +48,10 @@ export interface MachineRentedAddon {
   quantity_enabled: boolean;
 }
 
+export interface MachineRentedCategory {
+  categoryName: string;
+}
+
 export interface MachineRented {
   id: string;
   name: string;
@@ -62,6 +66,7 @@ export interface MachineRented {
   guests: string[];
   parts: MachineRentedPart[];
   addons: MachineRentedAddon[];
+  categories: MachineRentedCategory[];
   maintenanceHistories: MaintenanceHistory[];
   deposit: number;
   forbiddenRentalDays: Date[];
@@ -91,6 +96,7 @@ export type MachineRentedCreated = Omit<
   | 'maintenanceHistories'
   | 'parts'
   | 'addons'
+  | 'categories'
   | 'forbiddenRentalDays'
 >;
 
