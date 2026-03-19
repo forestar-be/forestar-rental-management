@@ -18,9 +18,16 @@ import {
   Chip,
   TextField,
   useMediaQuery,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { useTheme } from '@mui/material/styles';
 import SingleField from '../components/machine/SingleField';
 import { MachineLoading } from '../components/machine/MachineLoading';
@@ -32,6 +39,8 @@ import {
   AttachMoney as AttachMoneyIcon,
   Description as DescriptionIcon,
   Handyman as HandymanIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
 } from '@mui/icons-material';
 import {
   deleteMachineRentalApi,
@@ -73,6 +82,16 @@ const SingleRental = () => {
   const priceShipping = useSelector(getPriceShipping);
   const [fileURL, setFileURL] = useState<string | null>(null);
   const [loadingAgreement, setLoadingAgreement] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    content: string;
+    onConfirm: () => void;
+  }>({ open: false, title: '', content: '', onConfirm: () => {} });
+  const [refuseDialogOpen, setRefuseDialogOpen] = useState(false);
+  const [refuseReason, setRefuseReason] = useState('');
+  const [refuseNotifyClient, setRefuseNotifyClient] = useState(true);
+  const [warningNoReasonOpen, setWarningNoReasonOpen] = useState(false);
 
   const updateRentalData = useCallback(
     (updatedData: Partial<MachineRental>) => {
@@ -147,18 +166,75 @@ const SingleRental = () => {
       notifyError('ID invalide');
       return;
     }
-    if (window.confirm('Voulez-vous vraiment supprimer cette location ?')) {
-      deleteMachineRentalApi(id, auth.token)
-        .then(() => {
-          toast.success('Location supprimée avec succès.');
-          navigate('/');
-        })
-        .catch((error: Error) => {
-          toast.error(`Erreur lors de la suppression : ${error.message}`);
-          console.error('Erreur lors de la suppression :', error);
-        });
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Supprimer la location',
+      content: 'Voulez-vous vraiment supprimer cette location ? Cette action est irréversible.',
+      onConfirm: () => {
+        setConfirmDialog((d) => ({ ...d, open: false }));
+        deleteMachineRentalApi(id, auth.token)
+          .then(() => {
+            toast.success('Location supprimée avec succès.');
+            navigate('/');
+          })
+          .catch((error: Error) => {
+            toast.error(`Erreur lors de la suppression : ${error.message}`);
+            console.error('Erreur lors de la suppression :', error);
+          });
+      },
+    });
   }, [id, navigate, auth.token]);
+
+  const validateRental = useCallback(() => {
+    if (!id) return;
+    setConfirmDialog({
+      open: true,
+      title: 'Valider la demande',
+      content:
+        'Voulez-vous valider cette demande de location ? Un événement Google Calendar sera créé et le client recevra un email de confirmation.',
+      onConfirm: () => {
+        setConfirmDialog((d) => ({ ...d, open: false }));
+        updateRentalData({ to_validate: false });
+      },
+    });
+  }, [id, updateRentalData]);
+
+  const refuseRental = useCallback(() => {
+    if (!id) return;
+    setRefuseReason('');
+    setRefuseNotifyClient(true);
+    setRefuseDialogOpen(true);
+  }, [id]);
+
+  const executeRefusal = useCallback(() => {
+    if (!id) return;
+    setRefuseDialogOpen(false);
+    setWarningNoReasonOpen(false);
+    deleteMachineRentalApi(id, auth.token, {
+      reason: refuseReason || undefined,
+      notifyClient: refuseNotifyClient,
+    })
+      .then(() => {
+        toast.success(
+          refuseNotifyClient
+            ? 'Demande refusée. Le client a été notifié par email.'
+            : 'Demande refusée et supprimée.',
+        );
+        navigate('/');
+      })
+      .catch((error: Error) => {
+        toast.error(`Erreur lors du refus : ${error.message}`);
+      });
+  }, [id, auth.token, refuseReason, refuseNotifyClient, navigate]);
+
+  const handleRefuseConfirm = useCallback(() => {
+    // If notify is enabled but no reason, show warning first
+    if (refuseNotifyClient && !refuseReason.trim()) {
+      setWarningNoReasonOpen(true);
+      return;
+    }
+    executeRefusal();
+  }, [refuseNotifyClient, refuseReason, executeRefusal]);
 
   useEffect(() => {
     if (!id) {
@@ -482,6 +558,37 @@ const SingleRental = () => {
           </Tooltip>
         </Stack>
       </Box>
+
+      {rental?.to_validate && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2 }}
+          action={
+            <Stack direction="row" spacing={1}>
+              <Button
+                color="success"
+                variant="contained"
+                size="small"
+                startIcon={<CheckCircleIcon />}
+                onClick={validateRental}
+              >
+                Valider
+              </Button>
+              <Button
+                color="error"
+                variant="outlined"
+                size="small"
+                startIcon={<CancelIcon />}
+                onClick={refuseRental}
+              >
+                Refuser
+              </Button>
+            </Stack>
+          }
+        >
+          <strong>Demande en attente de validation</strong> — Cette location a été demandée via le site web et n'est pas encore confirmée.
+        </Alert>
+      )}
 
       {rental && (
         <Grid container spacing={3}>
@@ -1049,6 +1156,60 @@ const SingleRental = () => {
           </Grid>
         </Grid>
       )}
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        content={confirmDialog.content}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((d) => ({ ...d, open: false }))}
+      />
+
+      {/* Refusal dialog with reason + notify toggle */}
+      <Dialog open={refuseDialogOpen} onClose={() => setRefuseDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Refuser la demande</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Voulez-vous refuser et supprimer cette demande de location ?
+          </DialogContentText>
+          <TextField
+            autoFocus
+            label="Motif du refus (optionnel)"
+            fullWidth
+            multiline
+            rows={3}
+            value={refuseReason}
+            onChange={(e) => setRefuseReason(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={refuseNotifyClient}
+                onChange={(e) => setRefuseNotifyClient(e.target.checked)}
+              />
+            }
+            label="Notifier le client par email"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRefuseDialogOpen(false)} color="secondary">
+            Annuler
+          </Button>
+          <Button onClick={handleRefuseConfirm} color="error" variant="contained">
+            Refuser
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Warning: notify without reason */}
+      <ConfirmDialog
+        open={warningNoReasonOpen}
+        title="Envoyer sans motif ?"
+        content="Vous allez envoyer un email de refus au client sans indiquer de motif. Voulez-vous continuer ?"
+        onConfirm={executeRefusal}
+        onCancel={() => setWarningNoReasonOpen(false)}
+      />
     </Box>
   );
 };

@@ -21,6 +21,7 @@ export interface MachineRental {
   guests: string[];
   with_shipping: boolean;
   depositToPay: boolean;
+  to_validate: boolean;
   finalTermsPdfId?: string;
   addons?: MachineRentalAddon[];
 }

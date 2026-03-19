@@ -189,8 +189,17 @@ export const getAllMachineRental = async (
   return await apiRequest('/rental-mngt/machine-rental', 'GET', token);
 };
 
-export const deleteMachineRentalApi = async (id: string, token: string) => {
-  await apiRequest(`/rental-mngt/machine-rental/${id}`, 'DELETE', token);
+export const deleteMachineRentalApi = async (
+  id: string,
+  token: string,
+  body?: { reason?: string; notifyClient?: boolean },
+) => {
+  await apiRequest(
+    `/rental-mngt/machine-rental/${id}`,
+    'DELETE',
+    token,
+    body,
+  );
 };
 
 export const fetchMachineRentalById = async (

@@ -27,6 +27,7 @@ export enum COLUMN_ID_RENTAL_GRID {
   RENTAL_DATE = 'rentalDate',
   RETURN_DATE = 'returnDate',
   MACHINE_NAME = 'machineRented.name',
+  TO_VALIDATE = 'to_validate',
   SIGNED = 'finalTermsPdfId',
   PAID = 'paid',
   WITH_SHIPPING = 'with_shipping',
@@ -197,6 +198,19 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         field: COLUMN_ID_RENTAL_GRID.ID,
         cellRenderer: actionCellRenderer,
         width: 180,
+      },
+      {
+        headerName: 'Statut',
+        field: COLUMN_ID_RENTAL_GRID.TO_VALIDATE,
+        ...baseColumnConfig,
+        cellRenderer: (params: { value: boolean | undefined }) => (
+          <Chip
+            label={params.value ? 'En attente' : 'Confirmée'}
+            color={params.value ? 'warning' : 'success'}
+            size="small"
+          />
+        ),
+        width: 140,
       },
       {
         headerName: 'Machine',
