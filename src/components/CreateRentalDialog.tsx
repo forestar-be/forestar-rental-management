@@ -410,6 +410,27 @@ const CreateRentalDialog = (props: {
                 props.formik.errors.clientCity
               }
             />
+            <TextField
+              margin="dense"
+              name="clientCompany"
+              label="Entreprise"
+              type="text"
+              fullWidth
+              value={props.formik.values.clientCompany}
+              onChange={props.formik.handleChange}
+            />
+            <TextField
+              margin="dense"
+              name="clientMessage"
+              label="Message / Notes"
+              type="text"
+              fullWidth
+              multiline
+              rows={3}
+              sx={{ gridColumn: { md: 'span 2' } }}
+              value={props.formik.values.clientMessage}
+              onChange={props.formik.handleChange}
+            />
             <DatePicker
               shouldDisableDate={(date) =>
                 props.selectedMachine?.forbiddenRentalDays?.some(

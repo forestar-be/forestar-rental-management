@@ -14,6 +14,8 @@ export interface MachineRental {
   clientLastName: string;
   clientEmail: string;
   clientPhone: string;
+  clientCompany: string;
+  clientMessage: string;
   clientAddress: string;
   clientPostal: string;
   clientCity: string;

@@ -108,6 +108,8 @@ const Home = (): JSX.Element => {
       clientLastName: '',
       clientPhone: '',
       clientEmail: '',
+      clientCompany: '',
+      clientMessage: '',
       clientAddress: '',
       clientCity: '',
       clientPostal: '',

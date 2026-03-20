@@ -586,7 +586,8 @@ const SingleRental = () => {
             </Stack>
           }
         >
-          <strong>Demande en attente de validation</strong> — Cette location a été demandée via le site web et n'est pas encore confirmée.
+          <strong>Demande en attente de validation</strong> — Cette location a
+          été demandée via le site web et n'est pas encore confirmée.
         </Alert>
       )}
 
@@ -641,34 +642,65 @@ const SingleRental = () => {
                     handleChange={handleChange}
                     size="small"
                   />
-                  <SingleField
-                    label="Adresse"
-                    name="clientAddress"
-                    value={rental.clientAddress}
-                    valueType="text"
-                    isEditing={isEditing}
-                    handleChange={handleChange}
-                    size="small"
-                    xs={12}
-                  />
-                  <SingleField
-                    label="Code postal"
-                    name="clientPostal"
-                    value={rental.clientPostal}
-                    valueType="text"
-                    isEditing={isEditing}
-                    handleChange={handleChange}
-                    size="small"
-                  />
-                  <SingleField
-                    label="Ville"
-                    name="clientCity"
-                    value={rental.clientCity}
-                    valueType="text"
-                    isEditing={isEditing}
-                    handleChange={handleChange}
-                    size="small"
-                  />
+                  {(isEditing || rental.clientCompany) && (
+                    <SingleField
+                      label="Entreprise"
+                      name="clientCompany"
+                      value={rental.clientCompany}
+                      valueType="text"
+                      isEditing={isEditing}
+                      handleChange={handleChange}
+                      size="small"
+                      xs={12}
+                    />
+                  )}
+                  {(isEditing || rental.clientAddress) && (
+                    <SingleField
+                      label="Adresse"
+                      name="clientAddress"
+                      value={rental.clientAddress}
+                      valueType="text"
+                      isEditing={isEditing}
+                      handleChange={handleChange}
+                      size="small"
+                      xs={12}
+                    />
+                  )}
+                  {(isEditing || rental.clientPostal) && (
+                    <SingleField
+                      label="Code postal"
+                      name="clientPostal"
+                      value={rental.clientPostal}
+                      valueType="text"
+                      isEditing={isEditing}
+                      handleChange={handleChange}
+                      size="small"
+                    />
+                  )}
+                  {(isEditing || rental.clientCity) && (
+                    <SingleField
+                      label="Ville"
+                      name="clientCity"
+                      value={rental.clientCity}
+                      valueType="text"
+                      isEditing={isEditing}
+                      handleChange={handleChange}
+                      size="small"
+                    />
+                  )}
+                  {(isEditing || rental.clientMessage) && (
+                    <SingleField
+                      label="Message"
+                      name="clientMessage"
+                      value={rental.clientMessage}
+                      valueType="text"
+                      isEditing={isEditing}
+                      handleChange={handleChange}
+                      size="small"
+                      xs={12}
+                      isMultiline={true}
+                    />
+                  )}
                 </Grid>
               </CardContent>
             </Card>
@@ -1166,7 +1198,12 @@ const SingleRental = () => {
       />
 
       {/* Refusal dialog with reason + notify toggle */}
-      <Dialog open={refuseDialogOpen} onClose={() => setRefuseDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={refuseDialogOpen}
+        onClose={() => setRefuseDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Refuser la demande</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
@@ -1196,7 +1233,11 @@ const SingleRental = () => {
           <Button onClick={() => setRefuseDialogOpen(false)} color="secondary">
             Annuler
           </Button>
-          <Button onClick={handleRefuseConfirm} color="error" variant="contained">
+          <Button
+            onClick={handleRefuseConfirm}
+            color="error"
+            variant="contained"
+          >
             Refuser
           </Button>
         </DialogActions>

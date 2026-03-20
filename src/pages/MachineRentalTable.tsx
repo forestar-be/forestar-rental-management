@@ -1,7 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
-import { Box, Button, Paper, Tooltip, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Paper,
+  Tooltip,
+  Typography,
+  ToggleButton,
+} from '@mui/material';
 import '../styles/MachineRentalTable.css';
 import MachineRentalGrid from '../components/MachineRentalGrid';
 import { useAppSelector } from '../store/hooks';
@@ -10,11 +17,15 @@ import {
   getMachineRentedLoading,
 } from '../store/selectors';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { clearGridState } from '../utils/agGridSettingsHelper';
 
 const MachineRentalTable: React.FC = () => {
   const machineRentalList = useAppSelector(getMachineRentalList);
   const loadingMachineRentedList = useAppSelector(getMachineRentedLoading);
+  const [showPendingOnly, setShowPendingOnly] = useState(false);
+
+  const pendingCount = machineRentalList.filter((r) => r.to_validate).length;
 
   // Handle reset grid state
   const handleResetGrid = useCallback(() => {
@@ -47,6 +58,26 @@ const MachineRentalTable: React.FC = () => {
         <Typography variant="h6">Locations</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip
+            title={
+              showPendingOnly
+                ? 'Afficher toutes les locations'
+                : 'Afficher uniquement les locations en attente de validation'
+            }
+            arrow
+          >
+            <ToggleButton
+              value="pending"
+              selected={showPendingOnly}
+              onChange={() => setShowPendingOnly(!showPendingOnly)}
+              size="small"
+              color="warning"
+              sx={{ textTransform: 'none', gap: 0.5 }}
+            >
+              <FilterListIcon fontSize="small" />
+              En attente{pendingCount > 0 ? ` (${pendingCount})` : ''}
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip
             title="Réinitialiser le tableau (filtre, tri, déplacement et taille des colonnes)"
             arrow
           >
@@ -66,6 +97,7 @@ const MachineRentalTable: React.FC = () => {
         rowData={loadingMachineRentedList ? [] : machineRentalList}
         loading={loadingMachineRentedList}
         gridStateKey="machineRentalAgGridState"
+        filterPendingOnly={showPendingOnly}
       />
     </Paper>
   );

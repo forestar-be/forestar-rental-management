@@ -50,4 +50,11 @@ export const StyledAgGridWrapper = styled('div')(({ theme }) => ({
   '& .ag-header-column-menu .ag-icon': {
     color: `${theme.palette.primary.contrastText} !important`,
   },
+  // Highlight rows pending validation
+  '& .row-pending-validation': {
+    backgroundColor: `${theme.palette.warning.light}22 !important`,
+  },
+  '& .row-pending-validation:hover': {
+    backgroundColor: `${theme.palette.warning.light}44 !important`,
+  },
 }));

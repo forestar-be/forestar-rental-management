@@ -9,6 +9,7 @@ import type {
   ColDef,
   ValueGetterParams,
   GridReadyEvent,
+  RowClassParams,
 } from 'ag-grid-community';
 import { useNavigate } from 'react-router-dom';
 import { MachineRentalWithMachineRented } from '../utils/types';
@@ -42,6 +43,7 @@ interface MachineRentalGridProps {
   columnsToShow?: 'all' | COLUMN_ID_RENTAL_GRID[];
   priceShipping?: number;
   gridStateKey?: string;
+  filterPendingOnly?: boolean;
 }
 
 const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
@@ -51,11 +53,26 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
   columnsToShow = 'all',
   priceShipping = 0,
   gridStateKey,
+  filterPendingOnly = false,
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const gridRef = React.createRef<AgGridReact>();
+
+  const filteredRowData = useMemo(
+    () => (filterPendingOnly ? rowData.filter((r) => r.to_validate) : rowData),
+    [rowData, filterPendingOnly],
+  );
+
+  const rowClassRules = useMemo(
+    () => ({
+      'row-pending-validation': (
+        params: RowClassParams<MachineRentalWithMachineRented>,
+      ) => params.data?.to_validate === true,
+    }),
+    [],
+  );
 
   const calculatePageSize = useCallback(() => {
     const element = document.getElementById('machine-rental-table');
@@ -200,19 +217,6 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         width: 180,
       },
       {
-        headerName: 'Statut',
-        field: COLUMN_ID_RENTAL_GRID.TO_VALIDATE,
-        ...baseColumnConfig,
-        cellRenderer: (params: { value: boolean | undefined }) => (
-          <Chip
-            label={params.value ? 'En attente' : 'Confirmée'}
-            color={params.value ? 'warning' : 'success'}
-            size="small"
-          />
-        ),
-        width: 140,
-      },
-      {
         headerName: 'Machine',
         field: COLUMN_ID_RENTAL_GRID.MACHINE_NAME,
         ...baseColumnConfig,
@@ -355,8 +359,9 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
       <AgGridReact
         ref={gridRef}
         suppressCellFocus={true}
-        rowData={rowData}
+        rowData={filteredRowData}
         columnDefs={columns}
+        rowClassRules={rowClassRules}
         pagination={true}
         paginationPageSize={paginationPageSize}
         localeText={AG_GRID_LOCALE_FR}
