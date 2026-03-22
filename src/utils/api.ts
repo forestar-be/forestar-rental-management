@@ -5,7 +5,9 @@ import {
   MachineRentalWithMachineRented,
   MachineRented,
   MachineRentedCreated,
+  MachineRentedImage,
   MachineRentedUpdatedData,
+  MachineRentedVariant,
   MachineRentedWithImage,
 } from './types';
 
@@ -194,12 +196,7 @@ export const deleteMachineRentalApi = async (
   token: string,
   body?: { reason?: string; notifyClient?: boolean },
 ) => {
-  await apiRequest(
-    `/rental-mngt/machine-rental/${id}`,
-    'DELETE',
-    token,
-    body,
-  );
+  await apiRequest(`/rental-mngt/machine-rental/${id}`, 'DELETE', token, body);
 };
 
 export const fetchMachineRentalById = async (
@@ -295,6 +292,133 @@ export const getAuthUrlGg = async (
   return await apiRequest(
     `/auth-google/url?redirect=${redirectUrl}`,
     'GET',
+    token,
+  );
+};
+
+// ─── Multi-Image API ────────────────────────────────────────────────
+
+export const uploadMachineImages = async (
+  machineId: string,
+  images: File[],
+  token: string,
+): Promise<{ images: MachineRentedImage[] }> => {
+  const formData = new FormData();
+  images.forEach((image) => formData.append('images', image));
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/images`,
+    'POST',
+    token,
+    formData,
+    {},
+    false,
+  );
+};
+
+export const deleteMachineImage = async (
+  machineId: string,
+  imageId: string,
+  token: string,
+): Promise<void> => {
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/images/${imageId}`,
+    'DELETE',
+    token,
+  );
+};
+
+export const reorderMachineImages = async (
+  machineId: string,
+  order: { imageId: number; position: number }[],
+  token: string,
+): Promise<void> => {
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/images/reorder`,
+    'PATCH',
+    token,
+    order,
+  );
+};
+
+// ─── Variant API ────────────────────────────────────────────────────
+
+export const createVariant = async (
+  machineId: string,
+  data: {
+    title: string;
+    description?: string;
+    categories?: { categoryName: string }[];
+    addons?: { addonName: string; state: string }[];
+  },
+  token: string,
+): Promise<MachineRentedVariant> => {
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/variants`,
+    'POST',
+    token,
+    data,
+  );
+};
+
+export const updateVariant = async (
+  machineId: string,
+  variantId: string,
+  data: {
+    title?: string;
+    description?: string;
+    categories?: { categoryName: string }[];
+    addons?: { addonName: string; state: string }[];
+    position?: number;
+  },
+  token: string,
+): Promise<MachineRentedVariant> => {
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/variants/${variantId}`,
+    'PATCH',
+    token,
+    data,
+  );
+};
+
+export const deleteVariant = async (
+  machineId: string,
+  variantId: string,
+  token: string,
+): Promise<void> => {
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/variants/${variantId}`,
+    'DELETE',
+    token,
+  );
+};
+
+export const uploadVariantImages = async (
+  machineId: string,
+  variantId: string,
+  images: File[],
+  token: string,
+): Promise<{ images: MachineRentedImage[] }> => {
+  const formData = new FormData();
+  images.forEach((image) => formData.append('images', image));
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/variants/${variantId}/images`,
+    'POST',
+    token,
+    formData,
+    {},
+    false,
+  );
+};
+
+export const deleteVariantImage = async (
+  machineId: string,
+  variantId: string,
+  imageId: string,
+  token: string,
+): Promise<void> => {
+  return await apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/variants/${variantId}/images/${imageId}`,
+    'DELETE',
     token,
   );
 };

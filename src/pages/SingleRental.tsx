@@ -1063,6 +1063,19 @@ const SingleRental = () => {
                       handleChange={() => {}}
                     />
                   </Grid>
+                  {rental.variant && (
+                    <Grid item xs={12} sm={6} md={3}>
+                      <SingleField
+                        xs={12}
+                        label="Variante"
+                        name="variant"
+                        value={rental.variant.title}
+                        valueType="text"
+                        isEditing={false}
+                        handleChange={() => {}}
+                      />
+                    </Grid>
+                  )}
                   <Grid item xs={12} sm={6} md={3}>
                     <SingleField
                       xs={12}

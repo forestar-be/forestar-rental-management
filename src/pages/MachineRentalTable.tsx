@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 import {
@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import '../styles/MachineRentalTable.css';
 import MachineRentalGrid from '../components/MachineRentalGrid';
-import { useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   getMachineRentalList,
   getMachineRentedLoading,
@@ -19,11 +19,21 @@ import {
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { clearGridState } from '../utils/agGridSettingsHelper';
+import { fetchMachineRentalIfStale } from '../store/slices/machineRentalSlice';
+import { useAuth } from '../hooks/AuthProvider';
 
 const MachineRentalTable: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { token } = useAuth();
   const machineRentalList = useAppSelector(getMachineRentalList);
   const loadingMachineRentedList = useAppSelector(getMachineRentedLoading);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
+
+  useEffect(() => {
+    if (token) {
+      dispatch(fetchMachineRentalIfStale(token));
+    }
+  }, [dispatch, token]);
 
   const pendingCount = machineRentalList.filter((r) => r.to_validate).length;
 

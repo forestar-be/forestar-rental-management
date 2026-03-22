@@ -85,7 +85,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
       const newPageSize = Math.floor(
         (elementHeight - headerHeight - footerHeight) / rowHeight,
       );
-      setPaginationPageSize(newPageSize);
+      if (newPageSize > 0) setPaginationPageSize(newPageSize);
     }
   }, [rowHeight]);
 

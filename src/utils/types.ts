@@ -8,6 +8,7 @@ export interface MachineRentalAddon {
 export interface MachineRental {
   id: string;
   machineRentedId: string;
+  variantId?: number | null;
   rentalDate: Date | null;
   returnDate: Date | null;
   clientFirstName: string;
@@ -30,6 +31,7 @@ export interface MachineRental {
 
 export interface MachineRentalWithMachineRented extends MachineRental {
   machineRented: MachineRentedWithoutRental;
+  variant?: { id: number; title: string } | null;
 }
 
 export type MachineRentalToCreate = Omit<
@@ -55,6 +57,38 @@ export interface MachineRentedCategory {
   categoryName: string;
 }
 
+export type VariantAddonState = 'FORCED' | 'OPTIONAL' | 'HIDDEN';
+
+export interface MachineRentedVariantAddon {
+  addonName: string;
+  state: VariantAddonState;
+  price: number;
+  category: string;
+  price_type: string;
+}
+
+export interface MachineRentedVariantImage {
+  id: number;
+  url: string;
+  position: number;
+}
+
+export interface MachineRentedVariant {
+  id: number;
+  title: string;
+  description: string | null;
+  position: number;
+  images: MachineRentedVariantImage[];
+  addons: MachineRentedVariantAddon[];
+  categories: MachineRentedCategory[];
+}
+
+export interface MachineRentedImage {
+  id: number;
+  url: string;
+  position: number;
+}
+
 export interface MachineRented {
   id: string;
   name: string;
@@ -77,6 +111,9 @@ export interface MachineRented {
   fuelLevel: number | null;
   lastMeasurementUpdate: Date | null;
   lastMeasurementUser: string | null;
+  show_base_in_catalog: boolean;
+  variants: MachineRentedVariant[];
+  images: MachineRentedImage[];
 }
 
 export type MachineRentedWithoutRental = Omit<MachineRented, 'machineRentals'>;
@@ -101,6 +138,9 @@ export type MachineRentedCreated = Omit<
   | 'addons'
   | 'categories'
   | 'forbiddenRentalDays'
+  | 'variants'
+  | 'images'
+  | 'show_base_in_catalog'
 >;
 
 export type MachineRentedUpdatedData = Partial<MachineRented>;

@@ -7,7 +7,13 @@ const AuthRoute = () => {
   const location = useLocation();
 
   if (!auth.token) {
-    return <Navigate to="/login" state={{ from: location }} />;
+    const returnUrl = location.pathname + location.search;
+    return (
+      <Navigate
+        to={`/login?returnUrl=${encodeURIComponent(returnUrl)}`}
+        replace
+      />
+    );
   }
 
   return <Outlet />;

@@ -5,26 +5,13 @@ import {
   Box,
   Button,
   Grid,
-  IconButton,
-  ImageList,
   MenuItem,
   SxProps,
   Theme,
   Typography,
   Tabs,
   Tab,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Tooltip,
-  FormControlLabel,
-  Checkbox,
-  Card,
-  CardContent,
-  CardHeader,
-  CardMedia,
-  TextField,
   Slider,
   Divider,
 } from '@mui/material';
@@ -48,22 +35,21 @@ import {
   getAvailableAddons,
   getAvailableCategories,
   updateMachine,
-  updateMachineRentedImage,
+  uploadMachineImages,
+  deleteMachineImage,
+  reorderMachineImages,
 } from '../utils/api';
 import { MachineSelect } from '../components/machine/MachineSelect';
 import { SelectChangeEvent } from '@mui/material/Select/SelectInput';
 import { TYPE_VALUE_ASSOCIATION } from '../config/constants';
 import {
-  compressImage,
   formatPriceNumberToFrenchFormatStr,
   getKeys,
   isDifferent,
 } from '../utils/common.utils';
-import VisuallyHiddenInput from '../components/VisuallyHiddenInput';
 import MachineRentalGrid, {
   COLUMN_ID_RENTAL_GRID,
 } from '../components/MachineRentalGrid';
-import MachineRentedImageItem from '../components/MachineRentedImageItem';
 import {
   notifyError,
   notifyLoading,
@@ -72,6 +58,10 @@ import {
 import MachineParts from '../components/machine/MachineParts';
 import MachineAddons from '../components/machine/MachineAccessories';
 import MachineCategories from '../components/machine/MachineCategories';
+import MultiImageUpload from '../components/machine/MultiImageUpload';
+import MachineVariants, {
+  MachineVariantsHandle,
+} from '../components/machine/MachineVariants';
 import { Add as AddIcon } from '@mui/icons-material';
 import { getAvailableParts } from '../utils/api';
 import MaintenanceDialog from '../components/MaintenanceDialog';
@@ -90,6 +80,7 @@ const SingleMachine = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [notificationUpdating, setNotificationUpdating] =
     useState<null | ReturnType<typeof notifyLoading>>(null);
+  const [imageLoading, setImageLoading] = useState(false);
 
   const [tabValue, setTabValue] = useState<number>(0);
 
@@ -103,10 +94,26 @@ const SingleMachine = () => {
   >([]);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
-  const switchEditing = useCallback(async () => {
-    if (!isEditing) {
-      setTabValue(1); // Switch to 'Configuration' tab when editing starts
+  const variantsRef = React.useRef<MachineVariantsHandle>(null);
+
+  const refreshMachine = useCallback(async () => {
+    if (!id) return;
+    try {
+      const data: MachineRentedWithImage = await fetchMachineById(
+        id,
+        auth.token,
+      );
+      setMachine(data);
+      setInitialMachine(cloneDeep(data));
+    } catch (error) {
+      console.error('Error refreshing machine:', error);
+      notifyError(
+        `Une erreur s'est produite lors du rafraîchissement des données`,
+      );
     }
+  }, [id, auth.token]);
+
+  const switchEditing = useCallback(async () => {
     if (isEditing && initialMachine && machine) {
       // Préparer les mises à jour de la machine
       const updatedData: Record<keyof MachineRentedWithImage, any> = getKeys(
@@ -152,7 +159,7 @@ const SingleMachine = () => {
       }
 
       // Exécuter toutes les mises à jour et rafraîchir les entretiens
-      await Promise.all([machinePromise]);
+      await Promise.all([machinePromise, variantsRef.current?.saveAll()]);
     }
     setIsEditing(!isEditing);
   }, [
@@ -200,34 +207,6 @@ const SingleMachine = () => {
     [machine],
   );
 
-  const onUpdateImage = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const { files } = event.target;
-      const file = files?.[0];
-      if (file) {
-        try {
-          setLoading(true);
-          const newImage = await compressImage(file);
-          const res = await updateMachineRentedImage(id!, newImage, auth.token);
-
-          const machineUpdated: MachineRentedWithImage = {
-            ...machine!,
-            imageUrl: res.imageUrl,
-          };
-          setMachine(machineUpdated);
-          setInitialMachine(cloneDeep(machineUpdated));
-        } catch (e) {
-          console.error('Error compressing image:', e);
-          notifyError("Erreur lors de la compression de l'image");
-          return;
-        } finally {
-          setLoading(false);
-        }
-      }
-    },
-    [id, machine, auth.token],
-  );
-
   const deleteMachine = useCallback(() => {
     if (!id) {
       notifyError('ID invalide');
@@ -246,6 +225,52 @@ const SingleMachine = () => {
         });
     }
   }, [auth.token, id, navigate]);
+
+  // Multi-image handlers
+  const handleImageUpload = useCallback(
+    async (files: File[]) => {
+      if (!id) return;
+      setImageLoading(true);
+      try {
+        await uploadMachineImages(id, files, auth.token);
+        await refreshMachine();
+      } catch (error) {
+        notifyError("Erreur lors de l'upload des images");
+        console.error('Error uploading images:', error);
+      } finally {
+        setImageLoading(false);
+      }
+    },
+    [id, auth.token, refreshMachine],
+  );
+
+  const handleImageDelete = useCallback(
+    async (imageId: number) => {
+      if (!id) return;
+      try {
+        await deleteMachineImage(id, String(imageId), auth.token);
+        await refreshMachine();
+      } catch (error) {
+        notifyError("Erreur lors de la suppression de l'image");
+        console.error('Error deleting image:', error);
+      }
+    },
+    [id, auth.token, refreshMachine],
+  );
+
+  const handleImageReorder = useCallback(
+    async (order: { imageId: number; position: number }[]) => {
+      if (!id) return;
+      try {
+        await reorderMachineImages(id, order, auth.token);
+        await refreshMachine();
+      } catch (error) {
+        notifyError('Erreur lors du réordonnancement des images');
+        console.error('Error reordering images:', error);
+      }
+    },
+    [id, auth.token, refreshMachine],
+  );
 
   useEffect(() => {
     if (!id) {
@@ -491,7 +516,7 @@ const SingleMachine = () => {
   );
 
   const maxHeightAgGridTable = useMemo(() => {
-    return 'calc(100vh - 170px)';
+    return 'calc(100vh - 210px)';
   }, []);
 
   const lastMeasurement = useMemo(() => {
@@ -508,34 +533,92 @@ const SingleMachine = () => {
     <Box sx={{ padding: 4, paddingTop: 2, pb: 0 }}>
       {loading && <MachineLoading />}
       {machine && (
-        <Grid container spacing={1}>
-          <Grid item xs={4} mt={1}>
-            <Card elevation={3}>
-              <CardHeader
-                title={`Machine ${machine?.name}`}
-                titleTypographyProps={{ variant: 'h6' }}
-                sx={{
-                  backgroundColor: theme.palette.primary.main,
-                  color: theme.palette.primary.contrastText,
-                  py: 1.5,
-                }}
-              />
-              <CardContent>
-                {isEditing && (
-                  <Grid item xs={12} display={'flex'} gap={'10px'} mb={2}>
-                    {renderField(
-                      'Nom',
-                      'name',
-                      machine.name,
-                      'text',
-                      false,
-                      isEditing,
-                      12,
-                      'small',
-                    )}
-                  </Grid>
-                )}
-                <Grid container spacing={2}>
+        <Box>
+          {/* Header with title and action buttons */}
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
+            <Typography variant="h5">{`Machine ${machine.name}`}</Typography>
+            <Box display="flex" flexDirection="row" gap={2}>
+              <Button
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => setDialogOpen(true)}
+              >
+                Ajouter un entretien
+              </Button>
+              <Tooltip
+                arrow
+                title={
+                  isEditing
+                    ? 'Enregistrer les modifications'
+                    : 'Modifier la machine'
+                }
+              >
+                <Button
+                  variant={isEditing ? 'contained' : 'text'}
+                  color={isEditing ? 'success' : 'secondary'}
+                  startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
+                  onClick={switchEditing}
+                >
+                  {isEditing ? 'enregistrer' : 'modifier'}
+                </Button>
+              </Tooltip>
+              <Tooltip arrow title="Supprimer la machine">
+                <Button
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={deleteMachine}
+                >
+                  Supprimer
+                </Button>
+              </Tooltip>
+            </Box>
+          </Box>
+
+          {/* Tabs */}
+          <Tabs
+            value={tabValue}
+            onChange={(_, newValue) => setTabValue(newValue)}
+            indicatorColor="primary"
+            textColor="primary"
+            sx={{ mb: 2 }}
+          >
+            <Tab label="Général" />
+            <Tab label="Configuration" />
+            <Tab label="Variantes" />
+            <Tab label="Locations" />
+          </Tabs>
+
+          {/* Tab content */}
+          <Box
+            sx={{
+              mt: 1,
+              height: tabValue === 3 ? maxHeightAgGridTable : 'auto',
+            }}
+          >
+            {/* Général tab */}
+            {tabValue === 0 && (
+              <Grid container spacing={2}>
+                {/* Name field (always shown in Général, editable when isEditing) */}
+                <Grid item xs={12}>
+                  {renderField(
+                    'Nom',
+                    'name',
+                    machine.name,
+                    'text',
+                    false,
+                    isEditing,
+                    12,
+                    'small',
+                  )}
+                </Grid>
+
+                {/* Maintenance settings */}
+                <Grid item xs={6}>
                   {renderSelect(
                     'Type de maintenance',
                     'maintenance_type',
@@ -547,6 +630,8 @@ const SingleMachine = () => {
                     (value: string) => TYPE_VALUE_ASSOCIATION[value] ?? value,
                     'small',
                   )}
+                </Grid>
+                <Grid item xs={6}>
                   {machine.maintenance_type === 'BY_DAY'
                     ? renderField(
                         'Nombre de jour avant maintenance',
@@ -568,6 +653,8 @@ const SingleMachine = () => {
                         12,
                         'small',
                       )}
+                </Grid>
+                <Grid item xs={6}>
                   {renderField(
                     'Date de dernière maintenance',
                     'last_maintenance_date',
@@ -578,6 +665,8 @@ const SingleMachine = () => {
                     12,
                     'small',
                   )}
+                </Grid>
+                <Grid item xs={6}>
                   {renderField(
                     'Date de prochaine maintenance',
                     'next_maintenance',
@@ -588,6 +677,10 @@ const SingleMachine = () => {
                     12,
                     'small',
                   )}
+                </Grid>
+
+                {/* Price and deposit */}
+                <Grid item xs={6}>
                   {renderField(
                     'Prix par jour',
                     'price_per_day',
@@ -602,6 +695,8 @@ const SingleMachine = () => {
                     12,
                     'small',
                   )}
+                </Grid>
+                <Grid item xs={6}>
                   {renderField(
                     'Caution',
                     'deposit',
@@ -614,6 +709,10 @@ const SingleMachine = () => {
                     12,
                     'small',
                   )}
+                </Grid>
+
+                {/* Description */}
+                <Grid item xs={12}>
                   {renderField(
                     'Description',
                     'description',
@@ -624,6 +723,10 @@ const SingleMachine = () => {
                     12,
                     'small',
                   )}
+                </Grid>
+
+                {/* Guests */}
+                <Grid item xs={12}>
                   <SingleField
                     label="Invités"
                     name="guests"
@@ -641,16 +744,19 @@ const SingleMachine = () => {
                     handleRemoveEmailGuest={handleRemoveEmailGuest}
                     size="small"
                   />
-                  <Grid item xs={12}>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{ mt: 2, mb: 0, fontWeight: 'medium' }}
-                    >
-                      Mesures de la machine
-                    </Typography>
-                    <Divider />
-                  </Grid>
-                  {/* Operating Hours Field */}
+                </Grid>
+
+                {/* Measurements */}
+                <Grid item xs={12}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ mt: 2, mb: 0, fontWeight: 'medium' }}
+                  >
+                    Mesures de la machine
+                  </Typography>
+                  <Divider />
+                </Grid>
+                <Grid item xs={6}>
                   {renderField(
                     'Heures de fonctionnement',
                     'operatingHours',
@@ -660,13 +766,11 @@ const SingleMachine = () => {
                     isEditing,
                     12,
                     'small',
-                    undefined,
-                    undefined,
-                    undefined,
                   )}
-                  {/* Fuel Level Field */}
+                </Grid>
+                <Grid item xs={6}>
                   {isEditing ? (
-                    <Grid item xs={12}>
+                    <>
                       <Typography variant="subtitle2" gutterBottom>
                         Niveau de carburant ({machine.fuelLevel || 0}%)
                       </Typography>
@@ -681,7 +785,7 @@ const SingleMachine = () => {
                         min={0}
                         max={100}
                       />
-                    </Grid>
+                    </>
                   ) : (
                     renderField(
                       'Niveau de carburant',
@@ -699,193 +803,130 @@ const SingleMachine = () => {
                     )
                   )}
                 </Grid>
-              </CardContent>
-            </Card>
-            <Grid item xs={12} display={'flex'}>
-              <ImageList variant="masonry" cols={1} gap={8}>
-                <MachineRentedImageItem
-                  item={machine}
-                  onClick={null}
-                  showItemBar={false}
-                >
-                  {isEditing ? (
-                    <IconButton
-                      component={'label'}
-                      color={'default'}
-                      sx={{
-                        position: 'absolute',
-                        bottom: 5,
-                        right: 5,
-                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 1)',
-                        },
-                      }}
-                    >
-                      <EditIcon />
-                      <VisuallyHiddenInput
-                        accept={'image/*'}
-                        type="file"
-                        onChange={onUpdateImage}
-                      />
-                    </IconButton>
-                  ) : undefined}
-                </MachineRentedImageItem>
-              </ImageList>
-            </Grid>
-          </Grid>
-          <Grid item xs={8}>
-            <Grid
-              container
-              display={'flex'}
-              mb={2}
-              justifyContent="space-between"
-              flexWrap="nowrap"
-            >
-              <Grid item>
-                <Tabs
-                  value={tabValue}
-                  onChange={(event, newValue) => setTabValue(newValue)}
-                  indicatorColor="primary"
-                  textColor="primary"
-                >
-                  <Tab label="Locations" />
-                  <Tab label="Configuration" />
-                </Tabs>
-              </Grid>
-              <Grid item display={'flex'} flexDirection={'row'} gap={4}>
-                <Button
-                  color="primary"
-                  startIcon={<AddIcon />}
-                  onClick={() => setDialogOpen(true)}
-                >
-                  Ajouter un entretien
-                </Button>
-                <Tooltip
-                  arrow
-                  title={
-                    isEditing
-                      ? 'Enregistrer les modifications'
-                      : 'Modifier la machine'
-                  }
-                >
-                  <Button
-                    variant={isEditing ? 'contained' : 'text'}
-                    color={isEditing ? 'success' : 'secondary'}
-                    startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
-                    onClick={switchEditing}
+
+                {/* Images */}
+                <Grid item xs={12}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ mt: 2, mb: 1, fontWeight: 'medium' }}
                   >
-                    {isEditing ? 'enregistrer' : 'modifier'}
-                  </Button>
-                </Tooltip>
-                <Tooltip arrow title="Supprimer la machine">
-                  <Button
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={deleteMachine}
-                  >
-                    Supprimer
-                  </Button>
-                </Tooltip>
-              </Grid>
-            </Grid>
-            <Box
-              sx={{
-                mt: 2,
-                height: '100%',
-                maxHeight:
-                  tabValue === 0 ? maxHeightAgGridTable : 'fit-content',
-              }}
-            >
-              {tabValue === 0 && (
-                <Box sx={{ maxHeight: maxHeightAgGridTable, height: '100%' }}>
-                  <MachineRentalGrid
-                    rowData={
-                      loading
-                        ? []
-                        : (machine.machineRentals as MachineRentalWithMachineRented[])
-                    }
-                    loading={loading}
-                    columnsToShow={[
-                      COLUMN_ID_RENTAL_GRID.ID,
-                      COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME,
-                      COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME,
-                      COLUMN_ID_RENTAL_GRID.RENTAL_DATE,
-                      COLUMN_ID_RENTAL_GRID.RETURN_DATE,
-                    ]}
-                  />
-                </Box>
-              )}
-              {tabValue === 1 && (
-                <Grid container spacing={2} sx={{ ml: 0.1 }}>
-                  <MaintenanceHistory
-                    machine={machine}
+                    Images
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  <MultiImageUpload
+                    images={machine.images || []}
                     isEditing={isEditing}
-                    setMachine={setMachine}
+                    onUpload={handleImageUpload}
+                    onDelete={handleImageDelete}
+                    onReorder={handleImageReorder}
+                    loading={imageLoading}
                   />
-                  <Grid item xs={6}>
-                    <MachineParts
-                      parts={machine.parts || []}
-                      isEditing={isEditing}
-                      onChange={updateParts}
-                      availableParts={availableParts}
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <MachineAddons
-                      addons={(machine.addons || []).filter(
-                        (a) => a.category === 'accessory',
-                      )}
-                      isEditing={isEditing}
-                      onChange={(newAddons) =>
-                        updateAddons([
-                          ...newAddons,
-                          ...(machine.addons || []).filter(
-                            (a) => a.category === 'option',
-                          ),
-                        ])
-                      }
-                      availableAddons={availableAddons.filter(
-                        (a) => a.category === 'accessory',
-                      )}
-                      category="accessory"
-                      title="Accessoires"
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <MachineAddons
-                      addons={(machine.addons || []).filter(
-                        (a) => a.category === 'option',
-                      )}
-                      isEditing={isEditing}
-                      onChange={(newAddons) =>
-                        updateAddons([
-                          ...(machine.addons || []).filter(
-                            (a) => a.category === 'accessory',
-                          ),
-                          ...newAddons,
-                        ])
-                      }
-                      availableAddons={availableAddons.filter(
-                        (a) => a.category === 'option',
-                      )}
-                      category="option"
-                      title="Options"
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <MachineCategories
-                      categories={machine.categories || []}
-                      isEditing={isEditing}
-                      onChange={updateCategories}
-                      availableCategories={availableCategories}
-                    />
-                  </Grid>
                 </Grid>
-              )}
-            </Box>
-          </Grid>
-        </Grid>
+              </Grid>
+            )}
+
+            {/* Configuration tab */}
+            {tabValue === 1 && (
+              <Grid container spacing={2}>
+                <MaintenanceHistory
+                  machine={machine}
+                  isEditing={isEditing}
+                  setMachine={setMachine}
+                />
+                <Grid item xs={6}>
+                  <MachineParts
+                    parts={machine.parts || []}
+                    isEditing={isEditing}
+                    onChange={updateParts}
+                    availableParts={availableParts}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <MachineAddons
+                    addons={(machine.addons || []).filter(
+                      (a) => a.category === 'accessory',
+                    )}
+                    isEditing={isEditing}
+                    onChange={(newAddons) =>
+                      updateAddons([
+                        ...newAddons,
+                        ...(machine.addons || []).filter(
+                          (a) => a.category === 'option',
+                        ),
+                      ])
+                    }
+                    availableAddons={availableAddons.filter(
+                      (a) => a.category === 'accessory',
+                    )}
+                    category="accessory"
+                    title="Accessoires"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <MachineAddons
+                    addons={(machine.addons || []).filter(
+                      (a) => a.category === 'option',
+                    )}
+                    isEditing={isEditing}
+                    onChange={(newAddons) =>
+                      updateAddons([
+                        ...(machine.addons || []).filter(
+                          (a) => a.category === 'accessory',
+                        ),
+                        ...newAddons,
+                      ])
+                    }
+                    availableAddons={availableAddons.filter(
+                      (a) => a.category === 'option',
+                    )}
+                    category="option"
+                    title="Options"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <MachineCategories
+                    categories={machine.categories || []}
+                    isEditing={isEditing}
+                    onChange={updateCategories}
+                    availableCategories={availableCategories}
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Variantes tab */}
+            {tabValue === 2 && (
+              <MachineVariants
+                ref={variantsRef}
+                machine={machine}
+                isEditing={isEditing}
+                onMachineUpdate={refreshMachine}
+                token={auth.token}
+              />
+            )}
+
+            {/* Locations tab */}
+            {tabValue === 3 && (
+              <Box sx={{ height: maxHeightAgGridTable }}>
+                <MachineRentalGrid
+                  rowData={
+                    loading
+                      ? []
+                      : (machine.machineRentals as MachineRentalWithMachineRented[])
+                  }
+                  loading={loading}
+                  columnsToShow={[
+                    COLUMN_ID_RENTAL_GRID.ID,
+                    COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME,
+                    COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME,
+                    COLUMN_ID_RENTAL_GRID.RENTAL_DATE,
+                    COLUMN_ID_RENTAL_GRID.RETURN_DATE,
+                  ]}
+                />
+              </Box>
+            )}
+          </Box>
+        </Box>
       )}
       <MaintenanceDialog
         open={dialogOpen}

@@ -1,5 +1,5 @@
 import { useContext, createContext, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { login } from '../utils/api';
 
 const AuthContext = createContext({
@@ -38,6 +38,8 @@ const AuthProvider = ({ children }: any) => {
   );
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const loginAction = async (
     data: any,
   ): Promise<{ success: boolean; message: string }> => {
@@ -50,7 +52,8 @@ const AuthProvider = ({ children }: any) => {
         localStorage.setItem('token', String(res.token));
         localStorage.setItem('expires_at', String(res.expiresAt));
         localStorage.setItem('is_admin', String(res.isAdmin));
-        navigate('/');
+        const returnUrl = searchParams.get('returnUrl') || '/';
+        navigate(returnUrl);
         return { success: true, message: 'Vous êtes connecté' };
       }
       return {
