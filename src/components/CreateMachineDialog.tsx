@@ -12,8 +12,6 @@ import {
   InputAdornment,
   MenuItem,
   TextField,
-  FormControlLabel,
-  Checkbox,
 } from '@mui/material';
 import { MachineRentedCreated } from '../utils/types';
 import { MuiFileInput } from 'mui-file-input';
@@ -64,6 +62,19 @@ const validationSchema = yup.object({
   guests: yup.array().of(yup.string().email('Email invalide')),
   image: yup.mixed().required('Image de la machine est requise'),
   deposit: yup.number().required('Caution est requise'),
+  reservationDepositMode: yup
+    .string()
+    .oneOf(['PERCENT', 'FIXED'])
+    .required("Type d'acompte requis"),
+  reservationDepositValue: yup
+    .number()
+    .moreThan(0, "L'acompte doit être supérieur à 0")
+    .when('reservationDepositMode', ([mode], schema) =>
+      mode === 'PERCENT'
+        ? schema.max(100, "L'acompte ne peut pas dépasser 100 %")
+        : schema,
+    )
+    .required("Valeur de l'acompte requise"),
 });
 
 const CreateMachineDialog = (props: {
@@ -260,6 +271,52 @@ const CreateMachineDialog = (props: {
                 endAdornment: (
                   <InputAdornment position="end" sx={{ paddingLeft: 1 }}>
                     €
+                  </InputAdornment>
+                ),
+              }}
+              fullWidth
+            />
+            <TextField
+              select
+              label="Type d'acompte de réservation"
+              name="reservationDepositMode"
+              value={formik.values.reservationDepositMode}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              error={
+                formik.touched.reservationDepositMode &&
+                Boolean(formik.errors.reservationDepositMode)
+              }
+              helperText={
+                formik.touched.reservationDepositMode &&
+                formik.errors.reservationDepositMode
+              }
+              fullWidth
+            >
+              <MenuItem value="PERCENT">Pourcentage</MenuItem>
+              <MenuItem value="FIXED">Montant fixe</MenuItem>
+            </TextField>
+            <TextField
+              label="Acompte de réservation"
+              name="reservationDepositValue"
+              type="number"
+              value={formik.values.reservationDepositValue}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              error={
+                formik.touched.reservationDepositValue &&
+                Boolean(formik.errors.reservationDepositValue)
+              }
+              helperText={
+                formik.touched.reservationDepositValue &&
+                formik.errors.reservationDepositValue
+              }
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {formik.values.reservationDepositMode === 'PERCENT'
+                      ? '%'
+                      : '€'}
                   </InputAdornment>
                 ),
               }}

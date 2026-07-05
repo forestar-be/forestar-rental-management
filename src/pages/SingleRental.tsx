@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Grid,
-  IconButton,
   Tooltip,
   Typography,
   FormControlLabel,
@@ -13,17 +12,19 @@ import {
   CardContent,
   CardHeader,
   Divider,
-  Paper,
   Stack,
   Chip,
   TextField,
-  useMediaQuery,
   Alert,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import '../styles/SingleRepair.css';
@@ -35,17 +36,17 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import {
   Edit as EditIcon,
   Save as SaveIcon,
-  ArrowBack as ArrowBackIcon,
-  AttachMoney as AttachMoneyIcon,
   Description as DescriptionIcon,
   Handyman as HandymanIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import {
+  acceptMachineRental,
   deleteMachineRentalApi,
   fetchMachineRentalById,
   getRentalAgreement,
+  markMachineRentalPaid,
   updateMachineRental,
 } from '../utils/api';
 import { toast } from 'react-toastify';
@@ -53,8 +54,8 @@ import {
   MachineRental,
   MachineRentalAddon,
   MachineRentalWithMachineRented,
+  RentalPaymentAmountType,
 } from '../utils/types';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import { notifyError, notifyLoading } from '../utils/notifications';
@@ -64,6 +65,10 @@ import { cloneDeep } from 'lodash';
 import { getKeys, isDifferent } from '../utils/common.utils';
 import { useSelector } from 'react-redux';
 import { getPriceShipping } from '../store/selectors/configSelectors';
+import {
+  getRentalDisplayStatus,
+  RENTAL_STATUS_LABELS,
+} from '../utils/rentalStatus.util';
 
 const SingleRental = () => {
   const theme = useTheme();
@@ -92,6 +97,15 @@ const SingleRental = () => {
   const [refuseReason, setRefuseReason] = useState('');
   const [refuseNotifyClient, setRefuseNotifyClient] = useState(true);
   const [warningNoReasonOpen, setWarningNoReasonOpen] = useState(false);
+  const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
+  const [acceptAmountType, setAcceptAmountType] =
+    useState<RentalPaymentAmountType>('FULL');
+  const [customAmount, setCustomAmount] = useState('');
+  const [paymentActionLoading, setPaymentActionLoading] = useState(false);
+
+  const totalPrice = useMemo(() => {
+    return calculateTotalPrice(rental, priceShipping);
+  }, [rental, priceShipping]);
 
   const updateRentalData = useCallback(
     (updatedData: Partial<MachineRental>) => {
@@ -168,36 +182,63 @@ const SingleRental = () => {
     }
     setConfirmDialog({
       open: true,
-      title: 'Supprimer la location',
-      content: 'Voulez-vous vraiment supprimer cette location ? Cette action est irréversible.',
+      title: 'Annuler la location',
+      content:
+        "Voulez-vous annuler cette location ? Elle restera consultable dans l'historique et les dates seront libérées.",
       onConfirm: () => {
         setConfirmDialog((d) => ({ ...d, open: false }));
         deleteMachineRentalApi(id, auth.token)
-          .then(() => {
-            toast.success('Location supprimée avec succès.');
-            navigate('/');
+          .then((updatedRental) => {
+            toast.success('Location annulée avec succès.');
+            setRental(updatedRental);
+            setInitialRental(cloneDeep(updatedRental));
           })
           .catch((error: Error) => {
-            toast.error(`Erreur lors de la suppression : ${error.message}`);
-            console.error('Erreur lors de la suppression :', error);
+            toast.error(`Erreur lors de l'annulation : ${error.message}`);
+            console.error("Erreur lors de l'annulation :", error);
           });
       },
     });
-  }, [id, navigate, auth.token]);
+  }, [id, auth.token]);
 
   const validateRental = useCallback(() => {
     if (!id) return;
-    setConfirmDialog({
-      open: true,
-      title: 'Valider la demande',
-      content:
-        'Voulez-vous valider cette demande de location ? Un événement Google Calendar sera créé et le client recevra un email de confirmation.',
-      onConfirm: () => {
-        setConfirmDialog((d) => ({ ...d, open: false }));
-        updateRentalData({ to_validate: false });
-      },
-    });
-  }, [id, updateRentalData]);
+    setAcceptAmountType('FULL');
+    setCustomAmount('');
+    setAcceptDialogOpen(true);
+  }, [id]);
+
+  const executeAcceptance = useCallback(async () => {
+    if (!id || !rental) return;
+    const parsedCustomAmount =
+      acceptAmountType === 'CUSTOM' ? Number(customAmount) : undefined;
+    if (
+      acceptAmountType === 'CUSTOM' &&
+      (!parsedCustomAmount ||
+        parsedCustomAmount <= 0 ||
+        parsedCustomAmount > totalPrice)
+    ) {
+      toast.error(
+        'Le montant libre doit être positif et ne pas dépasser le total.',
+      );
+      return;
+    }
+    setPaymentActionLoading(true);
+    try {
+      const updatedRental = await acceptMachineRental(id, auth.token, {
+        amountType: acceptAmountType,
+        customAmount: parsedCustomAmount,
+      });
+      setRental(updatedRental);
+      setInitialRental(cloneDeep(updatedRental));
+      setAcceptDialogOpen(false);
+      toast.success('Réservation acceptée. Les instructions ont été envoyées.');
+    } catch (error) {
+      toast.error(`Acceptation impossible : ${(error as Error).message}`);
+    } finally {
+      setPaymentActionLoading(false);
+    }
+  }, [id, rental, acceptAmountType, customAmount, totalPrice, auth.token]);
 
   const refuseRental = useCallback(() => {
     if (!id) return;
@@ -214,18 +255,19 @@ const SingleRental = () => {
       reason: refuseReason || undefined,
       notifyClient: refuseNotifyClient,
     })
-      .then(() => {
+      .then((updatedRental) => {
         toast.success(
           refuseNotifyClient
             ? 'Demande refusée. Le client a été notifié par email.'
-            : 'Demande refusée et supprimée.',
+            : 'Demande refusée.',
         );
-        navigate('/');
+        setRental(updatedRental);
+        setInitialRental(cloneDeep(updatedRental));
       })
       .catch((error: Error) => {
         toast.error(`Erreur lors du refus : ${error.message}`);
       });
-  }, [id, auth.token, refuseReason, refuseNotifyClient, navigate]);
+  }, [id, auth.token, refuseReason, refuseNotifyClient]);
 
   const handleRefuseConfirm = useCallback(() => {
     // If notify is enabled but no reason, show warning first
@@ -260,22 +302,42 @@ const SingleRental = () => {
     fetchData();
   }, [id, auth.token]);
 
-  const totalPrice = useMemo(() => {
-    return calculateTotalPrice(rental, priceShipping);
-  }, [
-    rental?.machineRented,
-    rental?.rentalDate,
-    rental?.returnDate,
-    priceShipping,
-    rental?.with_shipping,
-    rental?.addons,
-  ]);
+  const markPaymentReceived = useCallback(() => {
+    if (!id || !rental || rental.status !== 'PAYMENT_PENDING') return;
+    setConfirmDialog({
+      open: true,
+      title: 'Marquer le virement reçu',
+      content:
+        'Confirmez-vous que le virement est visible sur le compte bancaire ? Une confirmation définitive sera envoyée au client.',
+      onConfirm: async () => {
+        setConfirmDialog((dialog) => ({ ...dialog, open: false }));
+        setPaymentActionLoading(true);
+        try {
+          const updatedRental = await markMachineRentalPaid(id, auth.token);
+          setRental(updatedRental);
+          setInitialRental(cloneDeep(updatedRental));
+          toast.success('Virement enregistré comme reçu.');
+        } catch (error) {
+          toast.error(
+            `Impossible de marquer le virement reçu : ${(error as Error).message}`,
+          );
+        } finally {
+          setPaymentActionLoading(false);
+        }
+      },
+    });
+  }, [id, rental, auth.token]);
 
-  const togglePaidStatus = useCallback(() => {
-    if (rental) {
-      updateRentalData({ paid: !rental.paid });
-    }
-  }, [rental, updateRentalData]);
+  const acceptancePreview = useMemo(() => {
+    if (!rental) return 0;
+    if (acceptAmountType === 'FULL') return totalPrice;
+    if (acceptAmountType === 'CUSTOM') return Number(customAmount) || 0;
+    const configured =
+      rental.machineRented.reservationDepositMode === 'PERCENT'
+        ? totalPrice * (rental.machineRented.reservationDepositValue / 100)
+        : rental.machineRented.reservationDepositValue;
+    return Math.min(totalPrice, Math.round(configured * 100) / 100);
+  }, [rental, acceptAmountType, customAmount, totalPrice]);
 
   const handleAddEmailGuest = useCallback((newEmail: string) => {
     setRental((prevRental) => {
@@ -486,15 +548,17 @@ const SingleRental = () => {
           justifyContent="center"
           flexDirection={'row-reverse'}
         >
-          <Tooltip title="Supprimer la location" arrow>
-            <Button
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={deleteRental}
-            >
-              Supprimer
-            </Button>
-          </Tooltip>
+          {rental?.status !== 'CANCELLED' && (
+            <Tooltip title="Annuler la location" arrow>
+              <Button
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={deleteRental}
+              >
+                Annuler
+              </Button>
+            </Tooltip>
+          )}
           <Tooltip
             arrow
             title={
@@ -512,24 +576,35 @@ const SingleRental = () => {
               {isEditing ? 'enregistrer' : 'modifier'}
             </Button>
           </Tooltip>
-          <Tooltip
-            arrow
-            title={
-              rental?.paid
-                ? 'Cliquer pour marquer comme non payé'
-                : 'Cliquer pour marquer comme payé'
-            }
-          >
-            <Button
-              color={rental?.paid ? 'primary' : 'warning'}
-              startIcon={
-                rental?.paid ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />
+          {rental?.status === 'PAYMENT_PENDING' && (
+            <Tooltip arrow title="Confirmer la réception du virement">
+              <Button
+                color="success"
+                variant="contained"
+                startIcon={<CheckCircleIcon />}
+                onClick={markPaymentReceived}
+                disabled={paymentActionLoading}
+              >
+                Marquer le virement reçu
+              </Button>
+            </Tooltip>
+          )}
+          {rental && (
+            <Chip
+              label={RENTAL_STATUS_LABELS[getRentalDisplayStatus(rental)]}
+              color={
+                getRentalDisplayStatus(rental) === 'PAID'
+                  ? 'success'
+                  : getRentalDisplayStatus(rental) === 'OVERDUE'
+                    ? 'error'
+                    : getRentalDisplayStatus(rental) === 'PENDING_APPROVAL'
+                      ? 'warning'
+                      : getRentalDisplayStatus(rental) === 'PAYMENT_PENDING'
+                        ? 'info'
+                        : 'default'
               }
-              onClick={togglePaidStatus}
-            >
-              {rental?.paid ? 'Payé' : 'Non payé'}
-            </Button>
-          </Tooltip>
+            />
+          )}
           <Tooltip
             arrow
             title={
@@ -559,7 +634,7 @@ const SingleRental = () => {
         </Stack>
       </Box>
 
-      {rental?.to_validate && (
+      {rental?.status === 'PENDING_APPROVAL' && (
         <Alert
           severity="warning"
           sx={{ mb: 2 }}
@@ -588,6 +663,61 @@ const SingleRental = () => {
         >
           <strong>Demande en attente de validation</strong> — Cette location a
           été demandée via le site web et n'est pas encore confirmée.
+        </Alert>
+      )}
+
+      {rental?.status === 'PAYMENT_PENDING' && (
+        <Alert
+          severity={
+            getRentalDisplayStatus(rental) === 'OVERDUE' ? 'error' : 'info'
+          }
+          sx={{ mb: 2 }}
+        >
+          <strong>
+            {getRentalDisplayStatus(rental) === 'OVERDUE'
+              ? 'Paiement en retard'
+              : 'Paiement en attente'}
+          </strong>
+          {' — '}
+          {rental.paymentAmount?.toLocaleString('fr-BE', {
+            style: 'currency',
+            currency: 'EUR',
+          })}{' '}
+          demandé, échéance le{' '}
+          {rental.paymentDueAt
+            ? dayjs(rental.paymentDueAt).format('DD/MM/YYYY HH:mm')
+            : '—'}
+          . Annulation automatique le{' '}
+          {rental.cancellationDueAt
+            ? dayjs(rental.cancellationDueAt).format('DD/MM/YYYY HH:mm')
+            : '—'}
+          . Communication : <strong>{rental.structuredCommunication}</strong>
+        </Alert>
+      )}
+
+      {rental?.status === 'PAID' && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          <strong>Virement reçu</strong>
+          {rental.paidAt
+            ? ` le ${dayjs(rental.paidAt).format('DD/MM/YYYY HH:mm')}`
+            : ''}
+          {rental.paymentAmount
+            ? ` — ${rental.paymentAmount.toLocaleString('fr-BE', {
+                style: 'currency',
+                currency: 'EUR',
+              })}`
+            : ''}
+          .
+        </Alert>
+      )}
+
+      {rental?.status === 'CANCELLED' && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <strong>Location annulée</strong>
+          {rental.cancelledAt
+            ? ` le ${dayjs(rental.cancelledAt).format('DD/MM/YYYY HH:mm')}`
+            : ''}
+          {rental.cancellationReason ? ` — ${rental.cancellationReason}` : ''}
         </Alert>
       )}
 
@@ -1210,6 +1340,86 @@ const SingleRental = () => {
         onCancel={() => setConfirmDialog((d) => ({ ...d, open: false }))}
       />
 
+      <Dialog
+        open={acceptDialogOpen}
+        onClose={() => !paymentActionLoading && setAcceptDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Accepter la réservation</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Choisissez le montant que le client doit virer sous 24 h.
+          </DialogContentText>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="payment-amount-type-label">
+              Montant demandé
+            </InputLabel>
+            <Select
+              labelId="payment-amount-type-label"
+              label="Montant demandé"
+              value={acceptAmountType}
+              onChange={(event) =>
+                setAcceptAmountType(
+                  event.target.value as RentalPaymentAmountType,
+                )
+              }
+            >
+              <MenuItem value="FULL">
+                Totalité ({totalPrice.toLocaleString('fr-BE')} €)
+              </MenuItem>
+              <MenuItem value="MACHINE_DEPOSIT">
+                Acompte machine ({rental?.machineRented.reservationDepositValue}
+                {rental?.machineRented.reservationDepositMode === 'PERCENT'
+                  ? ' %'
+                  : ' €'}
+                )
+              </MenuItem>
+              <MenuItem value="CUSTOM">Montant libre</MenuItem>
+            </Select>
+          </FormControl>
+          {acceptAmountType === 'CUSTOM' && (
+            <TextField
+              autoFocus
+              label="Montant libre"
+              type="number"
+              fullWidth
+              value={customAmount}
+              onChange={(event) => setCustomAmount(event.target.value)}
+              inputProps={{ min: 0.01, max: totalPrice, step: 0.01 }}
+              sx={{ mb: 2 }}
+            />
+          )}
+          <Alert severity="info">
+            Montant qui sera figé :{' '}
+            <strong>
+              {acceptancePreview.toLocaleString('fr-BE', {
+                style: 'currency',
+                currency: 'EUR',
+              })}
+            </strong>
+            . Le client recevra les coordonnées bancaires, la communication
+            structurée et le QR EPC.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setAcceptDialogOpen(false)}
+            disabled={paymentActionLoading}
+          >
+            Fermer
+          </Button>
+          <Button
+            onClick={executeAcceptance}
+            variant="contained"
+            color="success"
+            disabled={paymentActionLoading || acceptancePreview <= 0}
+          >
+            Accepter et demander le paiement
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Refusal dialog with reason + notify toggle */}
       <Dialog
         open={refuseDialogOpen}
@@ -1220,7 +1430,8 @@ const SingleRental = () => {
         <DialogTitle>Refuser la demande</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            Voulez-vous refuser et supprimer cette demande de location ?
+            Voulez-vous refuser cette demande de location ? Elle restera
+            consultable dans l'historique.
           </DialogContentText>
           <TextField
             autoFocus

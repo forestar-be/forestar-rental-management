@@ -35,7 +35,9 @@ const MachineRentalTable: React.FC = () => {
     }
   }, [dispatch, token]);
 
-  const pendingCount = machineRentalList.filter((r) => r.to_validate).length;
+  const pendingCount = machineRentalList.filter(
+    (r) => r.status === 'PENDING_APPROVAL',
+  ).length;
 
   // Handle reset grid state
   const handleResetGrid = useCallback(() => {

@@ -1,14 +1,11 @@
 import '../styles/Home.css';
 import {
-  MachineRental,
   MachineRentalToCreate,
   MachineRentedSimpleWithImage,
 } from '../utils/types';
 import { createMachineRental } from '../utils/api';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAuth } from '../hooks/AuthProvider';
-import { useTheme } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   CircularProgress,
@@ -17,7 +14,6 @@ import {
   TextField,
   IconButton,
 } from '@mui/material';
-import { toast } from 'react-toastify';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import CreateRentalDialog from '../components/CreateRentalDialog';
@@ -67,8 +63,6 @@ const validationSchema = yup.object({
 
 const Home = (): JSX.Element => {
   const auth = useAuth();
-  const theme = useTheme();
-  const navigate = useNavigate();
 
   const dispatch = useAppDispatch();
   const machineRentedList = useAppSelector(getMachineRentedList);
@@ -117,10 +111,8 @@ const Home = (): JSX.Element => {
       returnDate: null,
       guests: [],
       with_shipping: false,
-      paid: false,
       depositToPay: false,
       addons: [],
-      to_validate: false,
     },
     validationSchema: validationSchema,
     onSubmit: async (values: MachineRentalToCreate) => {

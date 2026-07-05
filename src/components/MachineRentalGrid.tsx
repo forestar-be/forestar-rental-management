@@ -20,6 +20,11 @@ import {
   onFirstDataRendered,
   setupGridStateEvents,
 } from '../utils/agGridSettingsHelper';
+import {
+  getRentalDisplayStatus,
+  RENTAL_STATUS_LABELS,
+  RentalDisplayStatus,
+} from '../utils/rentalStatus.util';
 
 export enum COLUMN_ID_RENTAL_GRID {
   ID = 'id',
@@ -28,9 +33,11 @@ export enum COLUMN_ID_RENTAL_GRID {
   RENTAL_DATE = 'rentalDate',
   RETURN_DATE = 'returnDate',
   MACHINE_NAME = 'machineRented.name',
-  TO_VALIDATE = 'to_validate',
+  STATUS = 'status',
   SIGNED = 'finalTermsPdfId',
-  PAID = 'paid',
+  PAYMENT_AMOUNT = 'paymentAmount',
+  PAYMENT_DUE_AT = 'paymentDueAt',
+  STRUCTURED_COMMUNICATION = 'structuredCommunication',
   WITH_SHIPPING = 'with_shipping',
   DEPOSIT_TO_PAY = 'depositToPay',
   TOTAL_PRICE = 'totalPrice',
@@ -61,7 +68,10 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
   const gridRef = React.createRef<AgGridReact>();
 
   const filteredRowData = useMemo(
-    () => (filterPendingOnly ? rowData.filter((r) => r.to_validate) : rowData),
+    () =>
+      filterPendingOnly
+        ? rowData.filter((r) => r.status === 'PENDING_APPROVAL')
+        : rowData,
     [rowData, filterPendingOnly],
   );
 
@@ -69,7 +79,13 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
     () => ({
       'row-pending-validation': (
         params: RowClassParams<MachineRentalWithMachineRented>,
-      ) => params.data?.to_validate === true,
+      ) => params.data?.status === 'PENDING_APPROVAL',
+      'row-payment-overdue': (
+        params: RowClassParams<MachineRentalWithMachineRented>,
+      ) => !!params.data && getRentalDisplayStatus(params.data) === 'OVERDUE',
+      'row-cancelled': (
+        params: RowClassParams<MachineRentalWithMachineRented>,
+      ) => params.data?.status === 'CANCELLED',
     }),
     [],
   );
@@ -114,13 +130,6 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
     [],
   );
 
-  // Price formatter
-  const formatPrice = useCallback((params: { value: number }) => {
-    return params.value !== undefined && params.value !== null
-      ? `${params.value.toLocaleString('fr-FR')} €`
-      : '';
-  }, []);
-
   // Price cell renderer with colored chips
   const priceCellRenderer = useCallback((params: { value: number }) => {
     if (params.value === undefined || params.value === null) {
@@ -140,7 +149,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
           <IconButton
             color="primary"
             component="a"
-            href={`/machines/${params.value}`}
+            href={`/locations/${params.value}`}
             rel="noopener noreferrer"
             onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
               e.preventDefault();
@@ -187,6 +196,31 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         size="small"
       />
     ),
+    [],
+  );
+
+  const statusCellRenderer = useCallback(
+    (params: { data?: MachineRentalWithMachineRented }) => {
+      if (!params.data) return null;
+      const status = getRentalDisplayStatus(params.data);
+      const colors: Record<
+        RentalDisplayStatus,
+        'default' | 'warning' | 'error' | 'success' | 'info'
+      > = {
+        PENDING_APPROVAL: 'warning',
+        PAYMENT_PENDING: 'info',
+        OVERDUE: 'error',
+        PAID: 'success',
+        CANCELLED: 'default',
+      };
+      return (
+        <Chip
+          label={RENTAL_STATUS_LABELS[status]}
+          color={colors[status]}
+          size="small"
+        />
+      );
+    },
     [],
   );
 
@@ -243,6 +277,17 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         valueFormatter: formatDate,
       },
       {
+        headerName: 'Statut',
+        colId: COLUMN_ID_RENTAL_GRID.STATUS,
+        valueGetter: (params) =>
+          params.data
+            ? RENTAL_STATUS_LABELS[getRentalDisplayStatus(params.data)]
+            : '',
+        ...baseColumnConfig,
+        cellRenderer: statusCellRenderer,
+        width: 190,
+      },
+      {
         headerName: 'Signé',
         field: COLUMN_ID_RENTAL_GRID.SIGNED,
         ...baseColumnConfig,
@@ -250,11 +295,24 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         width: 120,
       },
       {
-        headerName: 'Payé',
-        field: COLUMN_ID_RENTAL_GRID.PAID,
+        headerName: 'Montant demandé',
+        field: COLUMN_ID_RENTAL_GRID.PAYMENT_AMOUNT,
         ...baseColumnConfig,
-        cellRenderer: booleanCellRenderer,
-        width: 120,
+        cellRenderer: priceCellRenderer,
+        width: 170,
+      },
+      {
+        headerName: 'Échéance paiement',
+        field: COLUMN_ID_RENTAL_GRID.PAYMENT_DUE_AT,
+        ...baseColumnConfig,
+        valueFormatter: formatDate,
+        width: 170,
+      },
+      {
+        headerName: 'Communication',
+        field: COLUMN_ID_RENTAL_GRID.STRUCTURED_COMMUNICATION,
+        ...baseColumnConfig,
+        width: 190,
       },
       {
         headerName: 'Caution payé',
@@ -289,6 +347,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
       actionCellRenderer,
       formatDate,
       signedCellRenderer,
+      statusCellRenderer,
       booleanCellRenderer,
       clientNameValueGetter,
       totalPriceValueGetter,

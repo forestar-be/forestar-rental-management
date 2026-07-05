@@ -1,12 +1,20 @@
 #machineRentalTable {
   height: 100%;
-  position: relative
+  position: relative;
 }
 
 .ag-row-last {
-  border-bottom: unset!important;
+  border-bottom: unset !important;
 }
 
 .dialog-paper {
   min-width: 40%;
+}
+
+.row-payment-overdue {
+  background-color: rgba(211, 47, 47, 0.08);
+}
+
+.row-cancelled {
+  opacity: 0.68;
 }

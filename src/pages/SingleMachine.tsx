@@ -710,6 +710,34 @@ const SingleMachine = () => {
                     'small',
                   )}
                 </Grid>
+                <Grid item xs={6}>
+                  {renderSelect(
+                    "Type d'acompte de réservation",
+                    'reservationDepositMode',
+                    machine.reservationDepositMode,
+                    ['PERCENT', 'FIXED'],
+                    { width: '100%' },
+                    12,
+                    {},
+                    (value: string) =>
+                      value === 'PERCENT' ? 'Pourcentage' : 'Montant fixe',
+                    'small',
+                  )}
+                </Grid>
+                <Grid item xs={6}>
+                  {renderField(
+                    machine.reservationDepositMode === 'PERCENT'
+                      ? 'Acompte de réservation (%)'
+                      : 'Acompte de réservation (€)',
+                    'reservationDepositValue',
+                    machine.reservationDepositValue,
+                    'number',
+                    false,
+                    isEditing,
+                    12,
+                    'small',
+                  )}
+                </Grid>
 
                 {/* Description */}
                 <Grid item xs={12}>

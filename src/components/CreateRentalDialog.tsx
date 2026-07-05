@@ -1,7 +1,6 @@
 import {
   MachineRentalAddon,
   MachineRentalToCreate,
-  MachineRentalWithMachineRented,
   MachineRentedAddon,
   MachineRentedSimpleWithImage,
 } from '../utils/types';
@@ -14,7 +13,7 @@ import {
   FormikState,
   FormikTouched,
 } from 'formik';
-import React, { useCallback, useMemo, useEffect, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -512,17 +511,6 @@ const CreateRentalDialog = (props: {
                   />
                 }
                 label="Avec livraison"
-                sx={{ alignSelf: 'flex-start' }}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="paid"
-                    checked={props.formik.values.paid || false}
-                    onChange={props.formik.handleChange}
-                  />
-                }
-                label="Payé"
                 sx={{ alignSelf: 'flex-start' }}
               />
               <FormControlLabel

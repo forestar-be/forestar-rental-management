@@ -5,6 +5,14 @@ export interface MachineRentalAddon {
   quantity: number;
 }
 
+export type RentalStatus =
+  | 'PENDING_APPROVAL'
+  | 'PAYMENT_PENDING'
+  | 'PAID'
+  | 'CANCELLED';
+
+export type RentalPaymentAmountType = 'FULL' | 'MACHINE_DEPOSIT' | 'CUSTOM';
+
 export interface MachineRental {
   id: string;
   machineRentedId: string;
@@ -20,12 +28,21 @@ export interface MachineRental {
   clientAddress: string;
   clientPostal: string;
   clientCity: string;
-  paid: boolean;
   guests: string[];
   with_shipping: boolean;
   depositToPay: boolean;
-  to_validate: boolean;
+  status: RentalStatus;
+  paymentAmountType?: RentalPaymentAmountType | null;
+  paymentAmount?: number | null;
+  paymentRequestedAt?: Date | null;
+  paymentDueAt?: Date | null;
+  cancellationDueAt?: Date | null;
+  structuredCommunication?: string | null;
+  paidAt?: Date | null;
+  cancelledAt?: Date | null;
+  cancellationReason?: string | null;
   finalTermsPdfId?: string;
+  createdAt: Date;
   addons?: MachineRentalAddon[];
 }
 
@@ -36,7 +53,19 @@ export interface MachineRentalWithMachineRented extends MachineRental {
 
 export type MachineRentalToCreate = Omit<
   MachineRental,
-  'id' | 'machineRentedId'
+  | 'id'
+  | 'machineRentedId'
+  | 'status'
+  | 'paymentAmountType'
+  | 'paymentAmount'
+  | 'paymentRequestedAt'
+  | 'paymentDueAt'
+  | 'cancellationDueAt'
+  | 'structuredCommunication'
+  | 'paidAt'
+  | 'cancelledAt'
+  | 'cancellationReason'
+  | 'createdAt'
 >;
 
 export interface MaintenanceHistory {
@@ -106,6 +135,8 @@ export interface MachineRented {
   categories: MachineRentedCategory[];
   maintenanceHistories: MaintenanceHistory[];
   deposit: number;
+  reservationDepositMode: 'PERCENT' | 'FIXED';
+  reservationDepositValue: number;
   forbiddenRentalDays: Date[];
   operatingHours: number | null;
   fuelLevel: number | null;

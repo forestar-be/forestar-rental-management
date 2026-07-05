@@ -3,6 +3,7 @@ import {
   MachineRental,
   MachineRentalToCreate,
   MachineRentalWithMachineRented,
+  RentalPaymentAmountType,
   MachineRented,
   MachineRentedCreated,
   MachineRentedImage,
@@ -196,8 +197,29 @@ export const deleteMachineRentalApi = async (
   token: string,
   body?: { reason?: string; notifyClient?: boolean },
 ) => {
-  await apiRequest(`/rental-mngt/machine-rental/${id}`, 'DELETE', token, body);
+  return await apiRequest(
+    `/rental-mngt/machine-rental/${id}/cancel`,
+    'POST',
+    token,
+    body,
+  );
 };
+
+export const acceptMachineRental = async (
+  id: string,
+  token: string,
+  data: {
+    amountType: RentalPaymentAmountType;
+    customAmount?: number;
+  },
+): Promise<MachineRentalWithMachineRented> =>
+  apiRequest(`/rental-mngt/machine-rental/${id}/accept`, 'POST', token, data);
+
+export const markMachineRentalPaid = async (
+  id: string,
+  token: string,
+): Promise<MachineRentalWithMachineRented> =>
+  apiRequest(`/rental-mngt/machine-rental/${id}/mark-paid`, 'POST', token);
 
 export const fetchMachineRentalById = async (
   id: string,
