@@ -944,7 +944,6 @@ const SingleMachine = () => {
                   }
                   loading={loading}
                   columnsToShow={[
-                    COLUMN_ID_RENTAL_GRID.ID,
                     COLUMN_ID_RENTAL_GRID.CLIENT_FIRST_NAME,
                     COLUMN_ID_RENTAL_GRID.CLIENT_LAST_NAME,
                     COLUMN_ID_RENTAL_GRID.RENTAL_DATE,

@@ -211,6 +211,7 @@ export const acceptMachineRental = async (
   data: {
     amountType: RentalPaymentAmountType;
     customAmount?: number;
+    paymentDeadlineHours?: number;
   },
 ): Promise<MachineRentalWithMachineRented> =>
   apiRequest(`/rental-mngt/machine-rental/${id}/accept`, 'POST', token, data);

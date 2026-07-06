@@ -2,24 +2,19 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
-import { useTheme, IconButton, Tooltip, Chip } from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { useTheme, Chip } from '@mui/material';
 import type {
   ColDef,
   ValueGetterParams,
   GridReadyEvent,
   RowClassParams,
+  RowClickedEvent,
 } from 'ag-grid-community';
 import { useNavigate } from 'react-router-dom';
 import { MachineRentalWithMachineRented } from '../utils/types';
 import { AG_GRID_LOCALE_FR } from '@ag-grid-community/locale';
 import { StyledAgGridWrapper } from './styles/AgGridStyles';
 import { calculateTotalPrice } from '../utils/rental.util';
-import {
-  onFirstDataRendered,
-  setupGridStateEvents,
-} from '../utils/agGridSettingsHelper';
 import {
   getRentalDisplayStatus,
   RENTAL_STATUS_LABELS,
@@ -49,7 +44,6 @@ interface MachineRentalGridProps {
   loading?: boolean;
   columnsToShow?: 'all' | COLUMN_ID_RENTAL_GRID[];
   priceShipping?: number;
-  gridStateKey?: string;
   filterPendingOnly?: boolean;
 }
 
@@ -59,7 +53,6 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
   loading = false,
   columnsToShow = 'all',
   priceShipping = 0,
-  gridStateKey,
   filterPendingOnly = false,
 }) => {
   const theme = useTheme();
@@ -141,40 +134,6 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
     return <Chip label={formattedPrice} color={'primary'} size="small" />;
   }, []);
 
-  // Action cell renderer
-  const actionCellRenderer = useCallback(
-    (params: { value: number }) => (
-      <>
-        <Tooltip title="Ouvrir" arrow>
-          <IconButton
-            color="primary"
-            component="a"
-            href={`/locations/${params.value}`}
-            rel="noopener noreferrer"
-            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-              e.preventDefault();
-              navigate(`/locations/${params.value}`);
-            }}
-          >
-            <VisibilityIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Ouvrir dans un nouvel onglet" arrow>
-          <IconButton
-            color="primary"
-            component="a"
-            href={`/locations/${params.value}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <OpenInNewIcon />
-          </IconButton>
-        </Tooltip>
-      </>
-    ),
-    [navigate],
-  );
-
   // Boolean cell renderer for yes/no values
   const booleanCellRenderer = useCallback(
     (params: { value: boolean | undefined }) => (
@@ -208,6 +167,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         'default' | 'warning' | 'error' | 'success' | 'info'
       > = {
         PENDING_APPROVAL: 'warning',
+        LEGACY_UNPAID: 'default',
         PAYMENT_PENDING: 'info',
         OVERDUE: 'error',
         PAID: 'success',
@@ -244,12 +204,6 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
 
   const allColumns = useMemo<ColDef<MachineRentalWithMachineRented>[]>(
     () => [
-      {
-        headerName: '',
-        field: COLUMN_ID_RENTAL_GRID.ID,
-        cellRenderer: actionCellRenderer,
-        width: 180,
-      },
       {
         headerName: 'Machine',
         field: COLUMN_ID_RENTAL_GRID.MACHINE_NAME,
@@ -295,26 +249,6 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         width: 120,
       },
       {
-        headerName: 'Montant demandé',
-        field: COLUMN_ID_RENTAL_GRID.PAYMENT_AMOUNT,
-        ...baseColumnConfig,
-        cellRenderer: priceCellRenderer,
-        width: 170,
-      },
-      {
-        headerName: 'Échéance paiement',
-        field: COLUMN_ID_RENTAL_GRID.PAYMENT_DUE_AT,
-        ...baseColumnConfig,
-        valueFormatter: formatDate,
-        width: 170,
-      },
-      {
-        headerName: 'Communication',
-        field: COLUMN_ID_RENTAL_GRID.STRUCTURED_COMMUNICATION,
-        ...baseColumnConfig,
-        width: 190,
-      },
-      {
         headerName: 'Caution payé',
         field: COLUMN_ID_RENTAL_GRID.DEPOSIT_TO_PAY,
         ...baseColumnConfig,
@@ -344,7 +278,6 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
     ],
     [
       baseColumnConfig,
-      actionCellRenderer,
       formatDate,
       signedCellRenderer,
       statusCellRenderer,
@@ -388,24 +321,17 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         params.api.hideOverlay();
       }
       calculatePageSize();
-
-      // Setup event listeners to save grid state on changes if gridStateKey is provided
-      if (gridStateKey) {
-        const gridApi = params.api;
-        setupGridStateEvents(gridApi, gridStateKey);
-      }
     },
-    [loading, calculatePageSize, gridStateKey],
+    [loading, calculatePageSize],
   );
 
-  // Handle first data rendered - load saved column state
-  const handleFirstDataRendered = useCallback(
-    (params: any) => {
-      if (gridStateKey) {
-        onFirstDataRendered(params, gridStateKey);
+  const handleRowClicked = useCallback(
+    (event: RowClickedEvent<MachineRentalWithMachineRented>) => {
+      if (event.data?.id) {
+        navigate(`/locations/${event.data.id}`);
       }
     },
-    [gridStateKey],
+    [navigate],
   );
 
   return (
@@ -433,7 +359,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         }
         overlayNoRowsTemplate='<span class="ag-overlay-no-rows-center">Aucune location</span>'
         onGridReady={onGridReady}
-        onFirstDataRendered={handleFirstDataRendered}
+        onRowClicked={handleRowClicked}
       />
     </StyledAgGridWrapper>
   );

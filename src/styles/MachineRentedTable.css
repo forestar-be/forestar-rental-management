@@ -7,6 +7,10 @@
   border-bottom: unset!important;
 }
 
+.machine-repairs-table .ag-row {
+  cursor: pointer;
+}
+
 .dialog-paper {
   min-width: 40%;
 }

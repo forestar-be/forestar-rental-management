@@ -64,9 +64,13 @@ import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash';
 import { getKeys, isDifferent } from '../utils/common.utils';
 import { useSelector } from 'react-redux';
-import { getPriceShipping } from '../store/selectors/configSelectors';
+import {
+  getPriceShipping,
+  getRentalPaymentDeadlineHours,
+} from '../store/selectors/configSelectors';
 import {
   getRentalDisplayStatus,
+  hasRentalPaymentRequest,
   RENTAL_STATUS_LABELS,
 } from '../utils/rentalStatus.util';
 
@@ -85,6 +89,9 @@ const SingleRental = () => {
   const [notificationUpdating, setNotificationUpdating] =
     useState<null | ReturnType<typeof notifyLoading>>(null);
   const priceShipping = useSelector(getPriceShipping);
+  const defaultPaymentDeadlineHours = useSelector(
+    getRentalPaymentDeadlineHours,
+  );
   const [fileURL, setFileURL] = useState<string | null>(null);
   const [loadingAgreement, setLoadingAgreement] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -101,11 +108,16 @@ const SingleRental = () => {
   const [acceptAmountType, setAcceptAmountType] =
     useState<RentalPaymentAmountType>('FULL');
   const [customAmount, setCustomAmount] = useState('');
+  const [paymentDeadlineHours, setPaymentDeadlineHours] = useState('24');
   const [paymentActionLoading, setPaymentActionLoading] = useState(false);
 
   const totalPrice = useMemo(() => {
     return calculateTotalPrice(rental, priceShipping);
   }, [rental, priceShipping]);
+  const rentalHasPaymentRequest = rental
+    ? hasRentalPaymentRequest(rental)
+    : false;
+  const rentalDisplayStatus = rental ? getRentalDisplayStatus(rental) : null;
 
   const updateRentalData = useCallback(
     (updatedData: Partial<MachineRental>) => {
@@ -205,8 +217,9 @@ const SingleRental = () => {
     if (!id) return;
     setAcceptAmountType('FULL');
     setCustomAmount('');
+    setPaymentDeadlineHours(String(defaultPaymentDeadlineHours));
     setAcceptDialogOpen(true);
-  }, [id]);
+  }, [id, defaultPaymentDeadlineHours]);
 
   const executeAcceptance = useCallback(async () => {
     if (!id || !rental) return;
@@ -223,11 +236,20 @@ const SingleRental = () => {
       );
       return;
     }
+    const parsedPaymentDeadlineHours = Number(paymentDeadlineHours);
+    if (
+      !Number.isFinite(parsedPaymentDeadlineHours) ||
+      parsedPaymentDeadlineHours <= 0
+    ) {
+      toast.error('Le délai de paiement doit être strictement positif.');
+      return;
+    }
     setPaymentActionLoading(true);
     try {
       const updatedRental = await acceptMachineRental(id, auth.token, {
         amountType: acceptAmountType,
         customAmount: parsedCustomAmount,
+        paymentDeadlineHours: parsedPaymentDeadlineHours,
       });
       setRental(updatedRental);
       setInitialRental(cloneDeep(updatedRental));
@@ -238,7 +260,15 @@ const SingleRental = () => {
     } finally {
       setPaymentActionLoading(false);
     }
-  }, [id, rental, acceptAmountType, customAmount, totalPrice, auth.token]);
+  }, [
+    id,
+    rental,
+    acceptAmountType,
+    customAmount,
+    totalPrice,
+    paymentDeadlineHours,
+    auth.token,
+  ]);
 
   const refuseRental = useCallback(() => {
     if (!id) return;
@@ -304,11 +334,15 @@ const SingleRental = () => {
 
   const markPaymentReceived = useCallback(() => {
     if (!id || !rental || rental.status !== 'PAYMENT_PENDING') return;
+    const isPaymentRequest = hasRentalPaymentRequest(rental);
     setConfirmDialog({
       open: true,
-      title: 'Marquer le virement reçu',
-      content:
-        'Confirmez-vous que le virement est visible sur le compte bancaire ? Une confirmation définitive sera envoyée au client.',
+      title: isPaymentRequest
+        ? 'Marquer le virement reçu'
+        : 'Marquer comme payé',
+      content: isPaymentRequest
+        ? 'Confirmez-vous que le virement est visible sur le compte bancaire ? Une confirmation définitive sera envoyée au client.'
+        : "Confirmez-vous que cette ancienne location doit être marquée comme payée ? Aucun email de virement ne sera envoyé puisqu'elle n'a pas d'échéance de paiement.",
       onConfirm: async () => {
         setConfirmDialog((dialog) => ({ ...dialog, open: false }));
         setPaymentActionLoading(true);
@@ -316,10 +350,14 @@ const SingleRental = () => {
           const updatedRental = await markMachineRentalPaid(id, auth.token);
           setRental(updatedRental);
           setInitialRental(cloneDeep(updatedRental));
-          toast.success('Virement enregistré comme reçu.');
+          toast.success(
+            isPaymentRequest
+              ? 'Virement enregistré comme reçu.'
+              : 'Location marquée comme payée.',
+          );
         } catch (error) {
           toast.error(
-            `Impossible de marquer le virement reçu : ${(error as Error).message}`,
+            `Impossible de marquer la location comme payée : ${(error as Error).message}`,
           );
         } finally {
           setPaymentActionLoading(false);
@@ -577,7 +615,14 @@ const SingleRental = () => {
             </Button>
           </Tooltip>
           {rental?.status === 'PAYMENT_PENDING' && (
-            <Tooltip arrow title="Confirmer la réception du virement">
+            <Tooltip
+              arrow
+              title={
+                rentalHasPaymentRequest
+                  ? 'Confirmer la réception du virement'
+                  : 'Marquer cette ancienne location comme payée'
+              }
+            >
               <Button
                 color="success"
                 variant="contained"
@@ -585,21 +630,23 @@ const SingleRental = () => {
                 onClick={markPaymentReceived}
                 disabled={paymentActionLoading}
               >
-                Marquer le virement reçu
+                {rentalHasPaymentRequest
+                  ? 'Marquer le virement reçu'
+                  : 'Marquer comme payé'}
               </Button>
             </Tooltip>
           )}
           {rental && (
             <Chip
-              label={RENTAL_STATUS_LABELS[getRentalDisplayStatus(rental)]}
+              label={RENTAL_STATUS_LABELS[rentalDisplayStatus!]}
               color={
-                getRentalDisplayStatus(rental) === 'PAID'
+                rentalDisplayStatus === 'PAID'
                   ? 'success'
-                  : getRentalDisplayStatus(rental) === 'OVERDUE'
+                  : rentalDisplayStatus === 'OVERDUE'
                     ? 'error'
-                    : getRentalDisplayStatus(rental) === 'PENDING_APPROVAL'
+                    : rentalDisplayStatus === 'PENDING_APPROVAL'
                       ? 'warning'
-                      : getRentalDisplayStatus(rental) === 'PAYMENT_PENDING'
+                      : rentalDisplayStatus === 'PAYMENT_PENDING'
                         ? 'info'
                         : 'default'
               }
@@ -666,15 +713,15 @@ const SingleRental = () => {
         </Alert>
       )}
 
-      {rental?.status === 'PAYMENT_PENDING' && (
+      {rental?.status === 'PAYMENT_PENDING' && rentalHasPaymentRequest && (
         <Alert
           severity={
-            getRentalDisplayStatus(rental) === 'OVERDUE' ? 'error' : 'info'
+            rentalDisplayStatus === 'OVERDUE' ? 'error' : 'info'
           }
           sx={{ mb: 2 }}
         >
           <strong>
-            {getRentalDisplayStatus(rental) === 'OVERDUE'
+            {rentalDisplayStatus === 'OVERDUE'
               ? 'Paiement en retard'
               : 'Paiement en attente'}
           </strong>
@@ -697,11 +744,13 @@ const SingleRental = () => {
 
       {rental?.status === 'PAID' && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          <strong>Virement reçu</strong>
+          <strong>
+            {rentalHasPaymentRequest ? 'Virement reçu' : 'Location payée'}
+          </strong>
           {rental.paidAt
             ? ` le ${dayjs(rental.paidAt).format('DD/MM/YYYY HH:mm')}`
             : ''}
-          {rental.paymentAmount
+          {rentalHasPaymentRequest && rental.paymentAmount
             ? ` — ${rental.paymentAmount.toLocaleString('fr-BE', {
                 style: 'currency',
                 currency: 'EUR',
@@ -1349,7 +1398,7 @@ const SingleRental = () => {
         <DialogTitle>Accepter la réservation</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            Choisissez le montant que le client doit virer sous 24 h.
+            Choisissez le montant et le délai de paiement par virement.
           </DialogContentText>
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel id="payment-amount-type-label">
@@ -1390,6 +1439,16 @@ const SingleRental = () => {
               sx={{ mb: 2 }}
             />
           )}
+          <TextField
+            label="Délai de paiement (heures)"
+            type="number"
+            fullWidth
+            value={paymentDeadlineHours}
+            onChange={(event) => setPaymentDeadlineHours(event.target.value)}
+            inputProps={{ min: 1, step: 1 }}
+            helperText="La réservation passera en retard à cette échéance. L'annulation automatique se fera au minimum 48 h après acceptation, ou 24 h après cette échéance si elle est plus longue."
+            sx={{ mb: 2 }}
+          />
           <Alert severity="info">
             Montant qui sera figé :{' '}
             <strong>

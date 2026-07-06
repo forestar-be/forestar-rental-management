@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 import {
   Box,
-  Button,
   Paper,
   Tooltip,
   Typography,
@@ -16,9 +15,7 @@ import {
   getMachineRentalList,
   getMachineRentedLoading,
 } from '../store/selectors';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import { clearGridState } from '../utils/agGridSettingsHelper';
 import { fetchMachineRentalIfStale } from '../store/slices/machineRentalSlice';
 import { useAuth } from '../hooks/AuthProvider';
 
@@ -38,20 +35,6 @@ const MachineRentalTable: React.FC = () => {
   const pendingCount = machineRentalList.filter(
     (r) => r.status === 'PENDING_APPROVAL',
   ).length;
-
-  // Handle reset grid state
-  const handleResetGrid = useCallback(() => {
-    if (
-      window.confirm(
-        'Réinitialiser tous les paramètres du tableau (colonnes, filtres) ?',
-      )
-    ) {
-      // Clear the saved state
-      clearGridState('machineRentalAgGridState');
-      // Reload the page to apply the reset
-      window.location.reload();
-    }
-  }, []);
 
   return (
     <Paper
@@ -89,26 +72,11 @@ const MachineRentalTable: React.FC = () => {
               En attente{pendingCount > 0 ? ` (${pendingCount})` : ''}
             </ToggleButton>
           </Tooltip>
-          <Tooltip
-            title="Réinitialiser le tableau (filtre, tri, déplacement et taille des colonnes)"
-            arrow
-          >
-            <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={<RestartAltIcon />}
-              onClick={handleResetGrid}
-              size="small"
-            >
-              Réinitialiser
-            </Button>
-          </Tooltip>
         </Box>
       </Box>
       <MachineRentalGrid
         rowData={loadingMachineRentedList ? [] : machineRentalList}
         loading={loadingMachineRentedList}
-        gridStateKey="machineRentalAgGridState"
         filterPendingOnly={showPendingOnly}
       />
     </Paper>

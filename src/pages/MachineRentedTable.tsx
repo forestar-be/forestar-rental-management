@@ -6,18 +6,14 @@ import {
   Box,
   Button,
   Chip,
-  IconButton,
   Paper,
   Tooltip,
   Typography,
 } from '@mui/material';
 import { useAuth } from '../hooks/AuthProvider';
 import { useTheme } from '@mui/material/styles';
-import type { ColDef, GridReadyEvent } from 'ag-grid-community';
+import type { ColDef, GridReadyEvent, RowClickedEvent } from 'ag-grid-community';
 import { AG_GRID_LOCALE_FR } from '@ag-grid-community/locale';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import '../styles/MachineRentedTable.css';
 import { addMachineRented } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
@@ -32,11 +28,6 @@ import {
   getMachineRentedLoading,
 } from '../store/selectors';
 import { StyledAgGridWrapper } from '../components/styles/AgGridStyles';
-import {
-  clearGridState,
-  onFirstDataRendered,
-  setupGridStateEvents,
-} from '../utils/agGridSettingsHelper';
 
 const rowHeight = 40;
 
@@ -89,20 +80,6 @@ const MachineRentedTable: React.FC = () => {
     calculatePageSize();
   }, [machineRentedList]);
 
-  // Handle reset grid state
-  const handleResetGrid = useCallback(() => {
-    if (
-      window.confirm(
-        'Réinitialiser tous les paramètres du tableau (colonnes, filtres) ?',
-      )
-    ) {
-      // Clear the saved state
-      clearGridState('machineRentedAgGridState');
-      // Reload the page to apply the reset
-      window.location.reload();
-    }
-  }, []);
-
   const handleAddMachine = useCallback(
     async (values: MachineRentedCreated & { image: File }) => {
       try {
@@ -150,34 +127,6 @@ const MachineRentedTable: React.FC = () => {
       navigate(`/machines/${id}`);
     },
     [navigate],
-  );
-
-  // Memoized cell renderers
-  const ActionsRenderer = useCallback(
-    (params: { value: number }) => (
-      <>
-        <Tooltip title="Ouvrir" arrow>
-          <IconButton
-            color="primary"
-            onClick={() => handleRowOpen(params.value)}
-          >
-            <VisibilityIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Ouvrir dans un nouvel onglet" arrow>
-          <IconButton
-            color="primary"
-            component="a"
-            href={`/machines/${params.value}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <OpenInNewIcon />
-          </IconButton>
-        </Tooltip>
-      </>
-    ),
-    [handleRowOpen],
   );
 
   // Next maintenance renderer with colored chips
@@ -269,12 +218,6 @@ const MachineRentedTable: React.FC = () => {
   const columns = useMemo(() => {
     const columnDefs: ColDef<MachineRented>[] = [
       {
-        headerName: '',
-        field: 'id',
-        cellRenderer: ActionsRenderer,
-        width: 180,
-      },
-      {
         ...baseColDef,
         headerName: 'Nom',
         field: 'name',
@@ -309,7 +252,6 @@ const MachineRentedTable: React.FC = () => {
     ];
     return columnDefs;
   }, [
-    ActionsRenderer,
     formatMaintenanceType,
     formatDate,
     formatNextMaintenanceCounter,
@@ -346,17 +288,18 @@ const MachineRentedTable: React.FC = () => {
         params.api.hideOverlay();
       }
       calculatePageSize();
-
-      // Setup event listeners to save grid state on changes
-      setupGridStateEvents(params.api, 'machineRentedAgGridState');
     },
     [loadingMachineRentedList, calculatePageSize],
   );
 
-  // Handle first data rendered - load saved column state
-  const handleFirstDataRendered = useCallback((params: any) => {
-    onFirstDataRendered(params, 'machineRentedAgGridState');
-  }, []);
+  const handleRowClicked = useCallback(
+    (event: RowClickedEvent<MachineRented>) => {
+      if (event.data?.id) {
+        handleRowOpen(Number(event.data.id));
+      }
+    },
+    [handleRowOpen],
+  );
 
   return (
     <Paper
@@ -374,20 +317,6 @@ const MachineRentedTable: React.FC = () => {
       >
         <Typography variant="h6">Machines en location</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip
-            title="Réinitialiser le tableau (filtre, tri, déplacement et taille des colonnes)"
-            arrow
-          >
-            <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={<RestartAltIcon />}
-              onClick={handleResetGrid}
-              size="small"
-            >
-              Réinitialiser
-            </Button>
-          </Tooltip>
           <Button
             variant="contained"
             color="primary"
@@ -418,7 +347,7 @@ const MachineRentedTable: React.FC = () => {
           }
           loadingOverlayComponentParams={{ loading: loadingMachineRentedList }}
           onGridReady={onGridReady}
-          onFirstDataRendered={handleFirstDataRendered}
+          onRowClicked={handleRowClicked}
         />
       </StyledAgGridWrapper>
 
