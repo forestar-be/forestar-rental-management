@@ -164,7 +164,6 @@ const SingleField: React.FC<Props> = ({
     if (
       valueType === 'guest_email_list' &&
       (!emails ||
-        !handleAddEmailGuest ||
         !handleEditEmailGuestByIndex ||
         !handleRemoveEmailGuest)
     ) {
@@ -172,7 +171,12 @@ const SingleField: React.FC<Props> = ({
         'Emails fields are required for guest_email_list valueType',
       );
     }
-  }, [valueType]);
+  }, [
+    emails,
+    handleEditEmailGuestByIndex,
+    handleRemoveEmailGuest,
+    valueType,
+  ]);
 
   return (
     <Grid item xs={xs ?? (isMultiline ? 12 : 6)}>
@@ -203,11 +207,6 @@ const SingleField: React.FC<Props> = ({
             values={emails!}
             errors={errorsEmails}
             touched={touchedEmails}
-            lastIndex={lastIndexEmail!}
-            onChange={(e) =>
-              handleEditEmailGuestByIndex!(e.target.value, lastIndexEmail!)
-            }
-            onClickAddGuest={() => handleAddEmailGuest!('')}
             handleEditGuestByIndex={handleEditEmailGuestByIndex!}
             handleRemoveGuest={handleRemoveEmailGuest!}
           />

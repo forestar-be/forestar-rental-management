@@ -73,10 +73,12 @@ import {
   hasRentalPaymentRequest,
   RENTAL_STATUS_LABELS,
 } from '../utils/rentalStatus.util';
+import { useUnsavedChanges } from '../hooks/UnsavedChangesProvider';
 
 const SingleRental = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { confirmNavigation, setHasUnsavedChanges } = useUnsavedChanges();
   const auth = useAuth();
   const { id } = useParams<{ id: string }>();
   const [rental, setRental] = useState<null | MachineRentalWithMachineRented>(
@@ -118,65 +120,104 @@ const SingleRental = () => {
     ? hasRentalPaymentRequest(rental)
     : false;
   const rentalDisplayStatus = rental ? getRentalDisplayStatus(rental) : null;
+  const hasUnsavedChanges = useMemo(() => {
+    if (!isEditing || !rental || !initialRental) return false;
+
+    return getKeys(rental).some(
+      (key) =>
+        key !== 'machineRented' &&
+        isDifferent(rental[key], initialRental[key]),
+    );
+  }, [initialRental, isEditing, rental]);
+
+  useEffect(() => {
+    setHasUnsavedChanges(hasUnsavedChanges);
+    return () => setHasUnsavedChanges(false);
+  }, [hasUnsavedChanges, setHasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const preventUnsavedChangesLoss = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = true;
+    };
+
+    window.addEventListener('beforeunload', preventUnsavedChangesLoss);
+    return () =>
+      window.removeEventListener('beforeunload', preventUnsavedChangesLoss);
+  }, [hasUnsavedChanges]);
 
   const updateRentalData = useCallback(
-    (updatedData: Partial<MachineRental>) => {
-      if (rental && Object.keys(updatedData).length > 0) {
-        notificationUpdating?.end();
-        const newNotificationUpdating = notifyLoading(
-          'Mise à jour de la location en cours',
-          'Location mise à jour',
-          "Une erreur s'est produite lors de la mise à jour de la location",
+    async (updatedData: Partial<MachineRental>) => {
+      if (!rental || Object.keys(updatedData).length === 0) return true;
+
+      notificationUpdating?.end();
+      const newNotificationUpdating = notifyLoading(
+        'Mise à jour de la location en cours',
+        'Location mise à jour',
+        "Une erreur s'est produite lors de la mise à jour de la location",
+      );
+      setNotificationUpdating(newNotificationUpdating);
+
+      try {
+        const updatedRental = await updateMachineRental(
+          id!,
+          updatedData,
+          auth.token,
         );
-        setNotificationUpdating(newNotificationUpdating);
-        updateMachineRental(id!, updatedData, auth.token)
-          .then((updatedRental: MachineRental) => {
-            newNotificationUpdating.success(null);
-            const newRental = {
-              ...updatedRental,
-              machineRented: rental.machineRented,
-            };
-            setRental(newRental);
-            setInitialRental(cloneDeep(newRental));
-          })
-          .catch((error: Error) => {
-            if (String(error?.message).includes('overlapping_rental')) {
-              newNotificationUpdating.error(
-                'Les dates de location sont déjà prises',
-              );
-            } else {
-              newNotificationUpdating.error(
-                `Une erreur s'est produite lors de la mise à jour de la location : ${error.message}`,
-              );
-            }
-            console.error('Erreur lors de la mise à jour :', error);
-          });
+        newNotificationUpdating.success(null);
+        const newRental = {
+          ...updatedRental,
+          machineRented: rental.machineRented,
+        };
+        setRental(newRental);
+        setInitialRental(cloneDeep(newRental));
+        return true;
+      } catch (error) {
+        const updateError = error as Error;
+        if (String(updateError?.message).includes('overlapping_rental')) {
+          newNotificationUpdating.error(
+            'Les dates de location sont déjà prises',
+          );
+        } else {
+          newNotificationUpdating.error(
+            `Une erreur s'est produite lors de la mise à jour de la location : ${updateError.message}`,
+          );
+        }
+        console.error('Erreur lors de la mise à jour :', updateError);
+        return false;
       }
     },
     [notificationUpdating, rental, id, auth.token],
   );
 
-  const switchEditing = useCallback(() => {
-    if (isEditing && initialRental && rental) {
-      const updatedData: Record<keyof MachineRentalWithMachineRented, any> =
-        getKeys(rental).reduce(
-          (acc: any, key: keyof MachineRentalWithMachineRented) => {
-            if (key === 'machineRented') {
-              return acc;
-            }
-
-            if (isDifferent(rental[key], initialRental[key])) {
-              acc[key] = rental[key];
-            }
-            return acc;
-          },
-          {},
-        );
-
-      updateRentalData(updatedData);
+  const switchEditing = useCallback(async () => {
+    if (!isEditing) {
+      setIsEditing(true);
+      return;
     }
-    setIsEditing(!isEditing);
-  }, [isEditing, rental, initialRental, id, auth.token, updateRentalData]);
+
+    if (!initialRental || !rental) return;
+
+    const updatedData: Record<keyof MachineRentalWithMachineRented, any> =
+      getKeys(rental).reduce(
+        (acc: any, key: keyof MachineRentalWithMachineRented) => {
+          if (
+            key !== 'machineRented' &&
+            isDifferent(rental[key], initialRental[key])
+          ) {
+            acc[key] = rental[key];
+          }
+          return acc;
+        },
+        {},
+      );
+
+    if (await updateRentalData(updatedData)) {
+      setIsEditing(false);
+    }
+  }, [isEditing, rental, initialRental, updateRentalData]);
 
   const handleChange = useCallback(
     (value: string | Date | number | null | boolean, name: string) => {
@@ -1216,6 +1257,7 @@ const SingleRental = () => {
                     color="secondary"
                     startIcon={<HandymanIcon />}
                     onClick={() =>
+                      confirmNavigation() &&
                       navigate(`/machines/${rental?.machineRentedId}`)
                     }
                     size="medium"

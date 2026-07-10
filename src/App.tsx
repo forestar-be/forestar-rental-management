@@ -27,6 +27,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import LoginGoogle from './pages/LoginGoogle';
+import UnsavedChangesProvider from './hooks/UnsavedChangesProvider';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -67,12 +68,13 @@ const App = (): JSX.Element => {
         <ThemeProvider theme={getTheme(mode)}>
           <CssBaseline />
           <BrowserRouter>
-            <AuthProvider>
-              <LocalizationProvider
-                dateAdapter={AdapterDayjs}
-                adapterLocale={'fr'}
-              >
-                <Layout>
+            <UnsavedChangesProvider>
+              <AuthProvider>
+                <LocalizationProvider
+                  dateAdapter={AdapterDayjs}
+                  adapterLocale={'fr'}
+                >
+                  <Layout>
                   <ToastContainer />
                   <Routes>
                     <Route path="/login" element={<Login />} />
@@ -115,9 +117,10 @@ const App = (): JSX.Element => {
                     </Route>
                     <Route path="*" element={<NotFoundPage />} />
                   </Routes>
-                </Layout>
-              </LocalizationProvider>
-            </AuthProvider>
+                  </Layout>
+                </LocalizationProvider>
+              </AuthProvider>
+            </UnsavedChangesProvider>
           </BrowserRouter>
         </ThemeProvider>
       </ColorModeContext.Provider>

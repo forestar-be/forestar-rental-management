@@ -22,6 +22,7 @@ import { Logo } from '../components/Logo';
 import { useAuth } from '../hooks/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@mui/material';
+import { useUnsavedChanges } from '../hooks/UnsavedChangesProvider';
 
 // Environment variables
 const URL_RENTAL_OPERATOR = process.env.REACT_APP_URL_RENTAL_OPERATOR;
@@ -40,6 +41,10 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
   const colorMode = useContext(ColorModeContext);
   const [header] = useState<HeaderProps>(headerData);
   const navigate = useNavigate();
+  const { confirmNavigation } = useUnsavedChanges();
+  const navigateSafely = (path: string) => {
+    if (confirmNavigation()) navigate(path);
+  };
 
   return (
     <>
@@ -60,7 +65,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
             sx={{ textDecoration: 'none' }}
             onClick={(e) => {
               e.preventDefault();
-              navigate('/');
+              navigateSafely('/');
             }}
           >
             <Logo isDark={theme.palette.mode === 'dark'} />
@@ -80,7 +85,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   href={`/`}
                   onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                     e.preventDefault();
-                    navigate(`/`);
+                    navigateSafely(`/`);
                   }}
                   aria-label="Accueil"
                   color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
@@ -94,7 +99,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   href={`/locations`}
                   onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                     e.preventDefault();
-                    navigate(`/locations`);
+                    navigateSafely(`/locations`);
                   }}
                   aria-label="Locations"
                   color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
@@ -108,7 +113,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   href={`/machines`}
                   onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                     e.preventDefault();
-                    navigate(`/machines`);
+                    navigateSafely(`/machines`);
                   }}
                   aria-label="Machines"
                   color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
@@ -145,7 +150,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   href={`/parametres`}
                   onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                     e.preventDefault();
-                    navigate(`/parametres`);
+                    navigateSafely(`/parametres`);
                   }}
                   aria-label="Paramètres"
                   color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
@@ -155,7 +160,9 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   </Tooltip>
                 </IconButton>
                 <IconButton
-                  onClick={auth.logOut}
+                  onClick={() => {
+                    if (confirmNavigation()) auth.logOut();
+                  }}
                   aria-label="Déconnexion"
                   color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
                 >

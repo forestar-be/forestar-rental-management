@@ -13,7 +13,7 @@ import {
   FormikState,
   FormikTouched,
 } from 'formik';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import {
   Box,
   Button,
@@ -167,12 +167,7 @@ const CreateRentalDialog = (props: {
         ),
       );
     },
-    [props.formik],
-  );
-
-  const lastIndex = useMemo(
-    () => props.formik.values.guests.length - 1,
-    [props.formik.values.guests],
+    [props.formik, handleAddGuest],
   );
 
   const selectedAddons: MachineRentalAddon[] = props.formik.values.addons || [];
@@ -493,11 +488,6 @@ const CreateRentalDialog = (props: {
               values={props.formik.values.guests}
               errors={props.formik.errors.guests as string[]}
               touched={props.formik.touched.guests as unknown as boolean[]}
-              lastIndex={lastIndex}
-              onChange={(e) =>
-                handleEditGuestByIndex(e.target.value, lastIndex)
-              }
-              onClickAddGuest={() => handleAddGuest('')}
               handleEditGuestByIndex={handleEditGuestByIndex}
               handleRemoveGuest={handleRemoveGuest}
             />

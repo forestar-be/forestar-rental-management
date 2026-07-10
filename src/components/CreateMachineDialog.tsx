@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import {
@@ -94,10 +94,6 @@ const CreateMachineDialog = (props: {
       props.onSubmit(values as MachineRentedCreated & { image: File });
     },
   });
-
-  const lastIndexGuests = useMemo(() => {
-    return formik.values.guests.length - 1;
-  }, [formik.values.guests]);
 
   const handleAddGuest = useCallback(
     (guest: string) => {
@@ -360,11 +356,6 @@ const CreateMachineDialog = (props: {
               values={formik.values.guests}
               errors={formik.errors.guests as string[]}
               touched={formik.touched.guests as unknown as boolean[]}
-              lastIndex={lastIndexGuests}
-              onChange={(e) =>
-                handleEditGuestByIndex(e.target.value, lastIndexGuests)
-              }
-              onClickAddGuest={() => handleAddGuest('')}
               handleEditGuestByIndex={handleEditGuestByIndex}
               handleRemoveGuest={handleRemoveGuest}
             />
