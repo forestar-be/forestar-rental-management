@@ -66,7 +66,11 @@ export type MachineRentalToCreate = Omit<
   | 'cancelledAt'
   | 'cancellationReason'
   | 'createdAt'
->;
+> & {
+  // Le paiement d'une location créée en interne est suivi à la main : le back
+  // en déduit le statut, aucun champ de paiement n'est envoyé.
+  paid?: boolean;
+};
 
 export interface MaintenanceHistory {
   id?: string;

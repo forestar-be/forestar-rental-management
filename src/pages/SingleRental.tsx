@@ -383,7 +383,7 @@ const SingleRental = () => {
         : 'Marquer comme payé',
       content: isPaymentRequest
         ? 'Confirmez-vous que le virement est visible sur le compte bancaire ? Une confirmation définitive sera envoyée au client.'
-        : "Confirmez-vous que cette ancienne location doit être marquée comme payée ? Aucun email de virement ne sera envoyé puisqu'elle n'a pas d'échéance de paiement.",
+        : 'Confirmez-vous que le paiement de cette location a bien été reçu ? Aucun email ne sera envoyé au client.',
       onConfirm: async () => {
         setConfirmDialog((dialog) => ({ ...dialog, open: false }));
         setPaymentActionLoading(true);
@@ -661,7 +661,7 @@ const SingleRental = () => {
               title={
                 rentalHasPaymentRequest
                   ? 'Confirmer la réception du virement'
-                  : 'Marquer cette ancienne location comme payée'
+                  : 'Marquer cette location comme payée'
               }
             >
               <Button

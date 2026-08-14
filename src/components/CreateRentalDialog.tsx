@@ -514,6 +514,17 @@ const CreateRentalDialog = (props: {
                 label="Caution à payer"
                 sx={{ alignSelf: 'flex-start' }}
               />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="paid"
+                    checked={props.formik.values.paid || false}
+                    onChange={props.formik.handleChange}
+                  />
+                }
+                label="Payé"
+                sx={{ alignSelf: 'flex-start' }}
+              />
             </Box>
             {props.selectedMachine?.addons &&
               props.selectedMachine.addons.filter(

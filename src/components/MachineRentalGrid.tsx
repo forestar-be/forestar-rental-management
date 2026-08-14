@@ -167,7 +167,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
         'default' | 'warning' | 'error' | 'success' | 'info'
       > = {
         PENDING_APPROVAL: 'warning',
-        LEGACY_UNPAID: 'default',
+        UNPAID: 'default',
         PAYMENT_PENDING: 'info',
         OVERDUE: 'error',
         PAID: 'success',

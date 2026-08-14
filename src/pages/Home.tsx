@@ -112,6 +112,7 @@ const Home = (): JSX.Element => {
       guests: [],
       with_shipping: false,
       depositToPay: false,
+      paid: false,
       addons: [],
     },
     validationSchema: validationSchema,
