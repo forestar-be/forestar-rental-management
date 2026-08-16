@@ -13,6 +13,14 @@ export type RentalStatus =
 
 export type RentalPaymentAmountType = 'FULL' | 'MACHINE_DEPOSIT' | 'CUSTOM';
 
+export type RentalOrigin = 'PUBLIC_SITE' | 'INTERNAL_SITE' | 'UNKNOWN';
+
+export const RENTAL_ORIGIN_LABELS: Record<RentalOrigin, string> = {
+  PUBLIC_SITE: 'Site public',
+  INTERNAL_SITE: 'Site interne',
+  UNKNOWN: 'Provenance inconnue',
+};
+
 export interface MachineRental {
   id: string;
   machineRentedId: string;
@@ -32,6 +40,7 @@ export interface MachineRental {
   with_shipping: boolean;
   depositToPay: boolean;
   status: RentalStatus;
+  origin: RentalOrigin;
   paymentAmountType?: RentalPaymentAmountType | null;
   paymentAmount?: number | null;
   paymentRequestedAt?: Date | null;
@@ -56,6 +65,7 @@ export type MachineRentalToCreate = Omit<
   | 'id'
   | 'machineRentedId'
   | 'status'
+  | 'origin'
   | 'paymentAmountType'
   | 'paymentAmount'
   | 'paymentRequestedAt'

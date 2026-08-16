@@ -55,6 +55,7 @@ import {
   MachineRental,
   MachineRentalAddon,
   MachineRentalWithMachineRented,
+  RENTAL_ORIGIN_LABELS,
   RentalPaymentAmountType,
 } from '../utils/types';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
@@ -730,6 +731,13 @@ const SingleRental = () => {
               }
             />
           )}
+          {rental && rental.origin !== 'UNKNOWN' && (
+            <Chip
+              variant="outlined"
+              label={RENTAL_ORIGIN_LABELS[rental.origin]}
+              color={rental.origin === 'PUBLIC_SITE' ? 'secondary' : 'default'}
+            />
+          )}
           <Tooltip
             arrow
             title={
@@ -786,8 +794,13 @@ const SingleRental = () => {
             </Stack>
           }
         >
-          <strong>Demande en attente de validation</strong> — Cette location a
-          été demandée via le site web et n'est pas encore confirmée.
+          <strong>Demande en attente de validation</strong> —{' '}
+          {rental.origin === 'PUBLIC_SITE'
+            ? 'Cette location a été demandée via le site public'
+            : rental.origin === 'INTERNAL_SITE'
+              ? 'Cette location a été encodée en interne avant la séparation des parcours'
+              : 'Cette location'}{' '}
+          et n'est pas encore confirmée : elle ne réserve pas la machine.
         </Alert>
       )}
 
