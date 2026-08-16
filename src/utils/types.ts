@@ -15,10 +15,11 @@ export type RentalPaymentAmountType = 'FULL' | 'MACHINE_DEPOSIT' | 'CUSTOM';
 
 export type RentalOrigin = 'PUBLIC_SITE' | 'INTERNAL_SITE' | 'UNKNOWN';
 
-export const RENTAL_ORIGIN_LABELS: Record<RentalOrigin, string> = {
-  PUBLIC_SITE: 'Site public',
-  INTERNAL_SITE: 'Site interne',
-  UNKNOWN: 'Provenance inconnue',
+/** Site depuis lequel la location a été créée. Null quand on ne le sait pas. */
+export const RENTAL_ORIGIN_SITES: Record<RentalOrigin, string | null> = {
+  PUBLIC_SITE: 'forestar.be',
+  INTERNAL_SITE: 'location.forestar.be',
+  UNKNOWN: null,
 };
 
 export interface MachineRental {

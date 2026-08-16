@@ -55,7 +55,7 @@ import {
   MachineRental,
   MachineRentalAddon,
   MachineRentalWithMachineRented,
-  RENTAL_ORIGIN_LABELS,
+  RENTAL_ORIGIN_SITES,
   RentalPaymentAmountType,
 } from '../utils/types';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
@@ -122,6 +122,14 @@ const SingleRental = () => {
     ? hasRentalPaymentRequest(rental)
     : false;
   const rentalDisplayStatus = rental ? getRentalDisplayStatus(rental) : null;
+  const rentalCreationCaption = useMemo(() => {
+    if (!rental?.createdAt) return null;
+    const createdAt = dayjs(rental.createdAt).format('DD/MM/YYYY à HH:mm');
+    const site = RENTAL_ORIGIN_SITES[rental.origin];
+    return site
+      ? `Créée le ${createdAt} sur ${site}`
+      : `Créée le ${createdAt}`;
+  }, [rental]);
   const hasUnsavedChanges = useMemo(() => {
     if (!isEditing || !rental || !initialRental) return false;
 
@@ -711,7 +719,9 @@ const SingleRental = () => {
                   onClick={togglePaidStatus}
                   disabled={paymentActionLoading}
                 >
-                  {rental.status === 'PAID' ? 'Payée' : 'Non payée'}
+                  {rental.status === 'PAID'
+                    ? 'Marquer non payée'
+                    : 'Marquer payée'}
                 </Button>
               </Tooltip>
             )}
@@ -729,13 +739,6 @@ const SingleRental = () => {
                         ? 'info'
                         : 'default'
               }
-            />
-          )}
-          {rental && rental.origin !== 'UNKNOWN' && (
-            <Chip
-              variant="outlined"
-              label={RENTAL_ORIGIN_LABELS[rental.origin]}
-              color={rental.origin === 'PUBLIC_SITE' ? 'secondary' : 'default'}
             />
           )}
           <Tooltip
@@ -978,7 +981,15 @@ const SingleRental = () => {
 
           {/* Rental Details Card */}
           <Grid item xs={12} md={6}>
-            <Card elevation={3} sx={{ height: '100%', borderRadius: 2 }}>
+            <Card
+              elevation={3}
+              sx={{
+                height: '100%',
+                borderRadius: 2,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
               <CardHeader
                 title="Détails de la Location"
                 sx={{
@@ -1008,7 +1019,9 @@ const SingleRental = () => {
                   )
                 }
               />
-              <CardContent sx={{ p: 3 }}>
+              <CardContent
+                sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}
+              >
                 <Grid container spacing={2}>
                   <SingleField
                     label="Date de location"
@@ -1287,6 +1300,13 @@ const SingleRental = () => {
                     size="small"
                   />
                 </Grid>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontStyle: 'italic', mt: 'auto', pt: 2 }}
+                >
+                  {rentalCreationCaption}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
