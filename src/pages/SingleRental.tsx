@@ -47,6 +47,7 @@ import {
   fetchMachineRentalById,
   getRentalAgreement,
   markMachineRentalPaid,
+  markMachineRentalUnpaid,
   updateMachineRental,
 } from '../utils/api';
 import { toast } from 'react-toastify';
@@ -373,39 +374,56 @@ const SingleRental = () => {
     fetchData();
   }, [id, auth.token]);
 
+  const applyPaymentChange = useCallback(
+    async (action: () => Promise<MachineRentalWithMachineRented>, success: string) => {
+      setPaymentActionLoading(true);
+      try {
+        const updatedRental = await action();
+        setRental(updatedRental);
+        setInitialRental(cloneDeep(updatedRental));
+        toast.success(success);
+      } catch (error) {
+        toast.error(`Modification impossible : ${(error as Error).message}`);
+      } finally {
+        setPaymentActionLoading(false);
+      }
+    },
+    [],
+  );
+
+  // Demande de paiement issue du site public : le pointage du virement est
+  // définitif, il déclenche la confirmation au client.
   const markPaymentReceived = useCallback(() => {
     if (!id || !rental || rental.status !== 'PAYMENT_PENDING') return;
-    const isPaymentRequest = hasRentalPaymentRequest(rental);
     setConfirmDialog({
       open: true,
-      title: isPaymentRequest
-        ? 'Marquer le virement reçu'
-        : 'Marquer comme payé',
-      content: isPaymentRequest
-        ? 'Confirmez-vous que le virement est visible sur le compte bancaire ? Une confirmation définitive sera envoyée au client.'
-        : 'Confirmez-vous que le paiement de cette location a bien été reçu ? Aucun email ne sera envoyé au client.',
+      title: 'Marquer le virement reçu',
+      content:
+        'Confirmez-vous que le virement est visible sur le compte bancaire ? Une confirmation définitive sera envoyée au client.',
       onConfirm: async () => {
         setConfirmDialog((dialog) => ({ ...dialog, open: false }));
-        setPaymentActionLoading(true);
-        try {
-          const updatedRental = await markMachineRentalPaid(id, auth.token);
-          setRental(updatedRental);
-          setInitialRental(cloneDeep(updatedRental));
-          toast.success(
-            isPaymentRequest
-              ? 'Virement enregistré comme reçu.'
-              : 'Location marquée comme payée.',
-          );
-        } catch (error) {
-          toast.error(
-            `Impossible de marquer la location comme payée : ${(error as Error).message}`,
-          );
-        } finally {
-          setPaymentActionLoading(false);
-        }
+        await applyPaymentChange(
+          () => markMachineRentalPaid(id, auth.token),
+          'Virement enregistré comme reçu.',
+        );
       },
     });
-  }, [id, rental, auth.token]);
+  }, [id, rental, auth.token, applyPaymentChange]);
+
+  // Paiement suivi à la main : réversible, sans email au client.
+  const togglePaidStatus = useCallback(() => {
+    if (!id || !rental) return;
+    const wasPaid = rental.status === 'PAID';
+    applyPaymentChange(
+      () =>
+        wasPaid
+          ? markMachineRentalUnpaid(id, auth.token)
+          : markMachineRentalPaid(id, auth.token),
+      wasPaid
+        ? 'Location marquée comme non payée.'
+        : 'Location marquée comme payée.',
+    );
+  }, [id, rental, auth.token, applyPaymentChange]);
 
   const acceptancePreview = useMemo(() => {
     if (!rental) return 0;
@@ -655,15 +673,8 @@ const SingleRental = () => {
               {isEditing ? 'enregistrer' : 'modifier'}
             </Button>
           </Tooltip>
-          {rental?.status === 'PAYMENT_PENDING' && (
-            <Tooltip
-              arrow
-              title={
-                rentalHasPaymentRequest
-                  ? 'Confirmer la réception du virement'
-                  : 'Marquer cette location comme payée'
-              }
-            >
+          {rental?.status === 'PAYMENT_PENDING' && rentalHasPaymentRequest && (
+            <Tooltip arrow title="Confirmer la réception du virement">
               <Button
                 color="success"
                 variant="contained"
@@ -671,12 +682,38 @@ const SingleRental = () => {
                 onClick={markPaymentReceived}
                 disabled={paymentActionLoading}
               >
-                {rentalHasPaymentRequest
-                  ? 'Marquer le virement reçu'
-                  : 'Marquer comme payé'}
+                Marquer le virement reçu
               </Button>
             </Tooltip>
           )}
+          {/* Paiement suivi à la main : bascule dans les deux sens. */}
+          {rental &&
+            !rentalHasPaymentRequest &&
+            ['PAYMENT_PENDING', 'PAID'].includes(rental.status) && (
+              <Tooltip
+                arrow
+                title={
+                  rental.status === 'PAID'
+                    ? 'Cliquer pour marquer comme non payée'
+                    : 'Cliquer pour marquer comme payée'
+                }
+              >
+                <Button
+                  color={rental.status === 'PAID' ? 'primary' : 'warning'}
+                  startIcon={
+                    rental.status === 'PAID' ? (
+                      <CheckBoxIcon />
+                    ) : (
+                      <CheckBoxOutlineBlankIcon />
+                    )
+                  }
+                  onClick={togglePaidStatus}
+                  disabled={paymentActionLoading}
+                >
+                  {rental.status === 'PAID' ? 'Payée' : 'Non payée'}
+                </Button>
+              </Tooltip>
+            )}
           {rental && (
             <Chip
               label={RENTAL_STATUS_LABELS[rentalDisplayStatus!]}

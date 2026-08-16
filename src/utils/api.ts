@@ -222,6 +222,12 @@ export const markMachineRentalPaid = async (
 ): Promise<MachineRentalWithMachineRented> =>
   apiRequest(`/rental-mngt/machine-rental/${id}/mark-paid`, 'POST', token);
 
+export const markMachineRentalUnpaid = async (
+  id: string,
+  token: string,
+): Promise<MachineRentalWithMachineRented> =>
+  apiRequest(`/rental-mngt/machine-rental/${id}/mark-unpaid`, 'POST', token);
+
 export const fetchMachineRentalById = async (
   id: string,
   token: string,
