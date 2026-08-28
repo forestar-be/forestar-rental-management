@@ -35,7 +35,12 @@ import EditEmailsGuestFields from './EditEmailsGuestFields';
 import { formatPriceNumberToFrenchFormatStr } from '../utils/common.utils';
 import { calculateTotalPrice } from '../utils/rental.util';
 import { useSelector } from 'react-redux';
-import { getPriceShipping } from '../store/selectors/configSelectors';
+import {
+  getConfigLoading,
+  getDeliveryEmail,
+  getPriceShipping,
+} from '../store/selectors/configSelectors';
+import { getDeliveryGuestDisplay } from '../utils/rentalGuests.util';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -131,6 +136,13 @@ const CreateRentalDialog = (props: {
   ) => Promise<FormikErrors<MachineRentalToCreate>> | Promise<void>;
 }) => {
   const priceShipping = useSelector(getPriceShipping);
+  const deliveryEmail = useSelector(getDeliveryEmail);
+  const configLoading = useSelector(getConfigLoading);
+  const deliveryGuestDisplay = getDeliveryGuestDisplay(
+    props.formik.values.with_shipping,
+    deliveryEmail,
+    configLoading,
+  );
 
   const handleAddGuest = useCallback(
     (email: string) => {
@@ -490,6 +502,8 @@ const CreateRentalDialog = (props: {
               touched={props.formik.touched.guests as unknown as boolean[]}
               handleEditGuestByIndex={handleEditGuestByIndex}
               handleRemoveGuest={handleRemoveGuest}
+              readOnlyGuests={deliveryGuestDisplay.readOnlyGuests}
+              warning={deliveryGuestDisplay.warning}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <FormControlLabel
