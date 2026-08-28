@@ -67,6 +67,8 @@ import { cloneDeep } from 'lodash';
 import { getKeys, isDifferent } from '../utils/common.utils';
 import { useSelector } from 'react-redux';
 import {
+  getConfigLoading,
+  getDeliveryEmail,
   getPriceShipping,
   getRentalPaymentDeadlineHours,
 } from '../store/selectors/configSelectors';
@@ -76,6 +78,7 @@ import {
   RENTAL_STATUS_LABELS,
 } from '../utils/rentalStatus.util';
 import { useUnsavedChanges } from '../hooks/UnsavedChangesProvider';
+import { getDeliveryGuestDisplay } from '../utils/rentalGuests.util';
 
 const SingleRental = () => {
   const theme = useTheme();
@@ -93,6 +96,8 @@ const SingleRental = () => {
   const [notificationUpdating, setNotificationUpdating] =
     useState<null | ReturnType<typeof notifyLoading>>(null);
   const priceShipping = useSelector(getPriceShipping);
+  const deliveryEmail = useSelector(getDeliveryEmail);
+  const configLoading = useSelector(getConfigLoading);
   const defaultPaymentDeadlineHours = useSelector(
     getRentalPaymentDeadlineHours,
   );
@@ -122,21 +127,23 @@ const SingleRental = () => {
     ? hasRentalPaymentRequest(rental)
     : false;
   const rentalDisplayStatus = rental ? getRentalDisplayStatus(rental) : null;
+  const deliveryGuestDisplay = getDeliveryGuestDisplay(
+    rental?.with_shipping ?? false,
+    deliveryEmail,
+    configLoading,
+  );
   const rentalCreationCaption = useMemo(() => {
     if (!rental?.createdAt) return null;
     const createdAt = dayjs(rental.createdAt).format('DD/MM/YYYY à HH:mm');
     const site = RENTAL_ORIGIN_SITES[rental.origin];
-    return site
-      ? `Créée le ${createdAt} sur ${site}`
-      : `Créée le ${createdAt}`;
+    return site ? `Créée le ${createdAt} sur ${site}` : `Créée le ${createdAt}`;
   }, [rental]);
   const hasUnsavedChanges = useMemo(() => {
     if (!isEditing || !rental || !initialRental) return false;
 
     return getKeys(rental).some(
       (key) =>
-        key !== 'machineRented' &&
-        isDifferent(rental[key], initialRental[key]),
+        key !== 'machineRented' && isDifferent(rental[key], initialRental[key]),
     );
   }, [initialRental, isEditing, rental]);
 
@@ -384,7 +391,10 @@ const SingleRental = () => {
   }, [id, auth.token]);
 
   const applyPaymentChange = useCallback(
-    async (action: () => Promise<MachineRentalWithMachineRented>, success: string) => {
+    async (
+      action: () => Promise<MachineRentalWithMachineRented>,
+      success: string,
+    ) => {
       setPaymentActionLoading(true);
       try {
         const updatedRental = await action();
@@ -809,9 +819,7 @@ const SingleRental = () => {
 
       {rental?.status === 'PAYMENT_PENDING' && rentalHasPaymentRequest && (
         <Alert
-          severity={
-            rentalDisplayStatus === 'OVERDUE' ? 'error' : 'info'
-          }
+          severity={rentalDisplayStatus === 'OVERDUE' ? 'error' : 'info'}
           sx={{ mb: 2 }}
         >
           <strong>
@@ -1297,6 +1305,8 @@ const SingleRental = () => {
                     handleEditEmailGuestByIndex={handleEditEmailGuestByIndex}
                     handleAddEmailGuest={handleAddEmailGuest}
                     handleRemoveEmailGuest={handleRemoveEmailGuest}
+                    readOnlyGuests={deliveryGuestDisplay.readOnlyGuests}
+                    guestWarning={deliveryGuestDisplay.warning}
                     size="small"
                   />
                 </Grid>

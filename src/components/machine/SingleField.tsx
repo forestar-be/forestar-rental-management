@@ -7,13 +7,16 @@ import {
   Chip,
   FormControlLabel,
   Checkbox,
+  Tooltip,
 } from '@mui/material';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import 'dayjs/locale/fr';
 import EditEmailsGuestFields from '../EditEmailsGuestFields';
+import { ReadOnlyGuest } from '../../utils/rentalGuests.util';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -38,6 +41,8 @@ interface Props {
   handleEditEmailGuestByIndex?: (value: string, index: number) => void;
   handleAddEmailGuest?: (value: string) => void;
   handleRemoveEmailGuest?: (value: string) => void;
+  readOnlyGuests?: ReadOnlyGuest[];
+  guestWarning?: string;
   size?: 'small' | 'medium';
   showLabelWhenNotEditing?: boolean;
   noValueDisplay?: string;
@@ -153,30 +158,30 @@ const SingleField: React.FC<Props> = ({
   handleEditEmailGuestByIndex,
   handleAddEmailGuest,
   handleRemoveEmailGuest,
+  readOnlyGuests = [],
+  guestWarning,
   size,
   showLabelWhenNotEditing = true,
   noValueDisplay = '-',
   shouldDisableDate,
   caption,
 }) => {
-  console.log('caption', caption);
+  const readOnlyEmailSet = new Set(
+    readOnlyGuests.map(({ email }) => email.trim().toLowerCase()),
+  );
+  const visibleManualEmails = (emails || []).filter(
+    (email) => !readOnlyEmailSet.has(email.trim().toLowerCase()),
+  );
   useEffect(() => {
     if (
       valueType === 'guest_email_list' &&
-      (!emails ||
-        !handleEditEmailGuestByIndex ||
-        !handleRemoveEmailGuest)
+      (!emails || !handleEditEmailGuestByIndex || !handleRemoveEmailGuest)
     ) {
       throw new Error(
         'Emails fields are required for guest_email_list valueType',
       );
     }
-  }, [
-    emails,
-    handleEditEmailGuestByIndex,
-    handleRemoveEmailGuest,
-    valueType,
-  ]);
+  }, [emails, handleEditEmailGuestByIndex, handleRemoveEmailGuest, valueType]);
 
   return (
     <Grid item xs={xs ?? (isMultiline ? 12 : 6)}>
@@ -209,6 +214,8 @@ const SingleField: React.FC<Props> = ({
             touched={touchedEmails}
             handleEditGuestByIndex={handleEditEmailGuestByIndex!}
             handleRemoveGuest={handleRemoveEmailGuest!}
+            readOnlyGuests={readOnlyGuests}
+            warning={guestWarning}
           />
         ) : valueType === 'boolean' ? (
           <FormControlLabel
@@ -263,6 +270,32 @@ const SingleField: React.FC<Props> = ({
               color={value ? 'success' : 'default'}
               size="small"
             />
+          ) : valueType === 'guest_email_list' ? (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {visibleManualEmails.map((email) => (
+                <Chip key={email.toLowerCase()} label={email} size="small" />
+              ))}
+              {readOnlyGuests.map(({ email, tooltip }) => (
+                <Tooltip key={email.toLowerCase()} title={tooltip} arrow>
+                  <Chip
+                    icon={<LockOutlinedIcon />}
+                    label={email}
+                    size="small"
+                    variant="outlined"
+                  />
+                </Tooltip>
+              ))}
+              {visibleManualEmails.length === 0 &&
+                readOnlyGuests.length === 0 &&
+                !guestWarning && (
+                  <Typography variant="subtitle1">{noValueDisplay}</Typography>
+                )}
+              {guestWarning && (
+                <Typography color="warning.main" variant="body2">
+                  {guestWarning}
+                </Typography>
+              )}
+            </Box>
           ) : (
             <Typography variant="subtitle1" sx={{ overflowWrap: 'break-word' }}>
               {valueType === 'date' && value
