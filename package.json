@@ -35,6 +35,7 @@
     "@ag-grid-community/react": "^32.3.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
+    "@forestar-be/core": "^0.2.1",
     "@mui/icons-material": "^6.1.2",
     "@mui/lab": "^6.0.0-beta.17",
     "@mui/material": "^6.1.2",
