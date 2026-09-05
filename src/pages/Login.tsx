@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../hooks/AuthProvider';
 import {
   TextField,
@@ -12,11 +12,37 @@ import { useTheme } from '@mui/material/styles';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { notifyError } from '../utils/notifications';
 
+/**
+ * En mode SSO, cette page n'affiche plus de formulaire : les identifiants sont
+ * saisis chez Zitadel. La route reste valide — d'anciens liens et favoris y
+ * mènent — et repart aussitôt vers l'IdP.
+ */
+const SsoLoginRedirect = (): JSX.Element => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { isAuthenticated, isLoading, loginAction } = useAuth();
+  const started = useRef(false);
+  const returnUrl = searchParams.get('returnUrl') || '/';
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated) {
+      navigate(returnUrl);
+      return;
+    }
+    if (started.current) return;
+    started.current = true;
+    void loginAction({});
+  }, [isAuthenticated, isLoading, loginAction, navigate, returnUrl]);
+
+  return <p>Redirection vers l&apos;authentification Forestar…</p>;
+};
+
 const Login = (): JSX.Element => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { token, loginAction } = useAuth();
+  const { token, loginAction, ssoEnabled } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,6 +72,9 @@ const Login = (): JSX.Element => {
     }
     notifyError('please provide a valid input');
   };
+
+  // Après les hooks : leur ordre doit rester identique d'un rendu à l'autre.
+  if (ssoEnabled) return <SsoLoginRedirect />;
 
   return (
     <Box
