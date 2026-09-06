@@ -27,11 +27,17 @@ const apiRequest = async (
   additionalHeaders: HeadersInit = { 'Content-Type': 'application/json' },
   stringifyBody: boolean = true,
 ) => {
-  // En mode SSO, `token` est vide et l'en-tête `Authorization` disparaît :
+  // En mode SSO, `token` vaut une sentinelle non vide et l'en-tête
   // l'authentification passe par le cookie `__Host-`, que le navigateur envoie
   // seul, plus un jeton CSRF sur chaque mutation.
   const headers: Record<string, string> = {
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    // `SSO_ENABLED` et pas seulement la vérité de `token` : depuis le
+    // 2026-09-06 celui-ci vaut une sentinelle non vide en mode SSO, pour
+    // que les tests `if (!token)` du code hérité restent justes. Sans
+    // cette garde, la sentinelle partirait en en-tête `Authorization`.
+    ...(!SSO_ENABLED && token
+      ? { Authorization: `Bearer ${token}` }
+      : {}),
     ...(additionalHeaders as Record<string, string>),
   };
 
