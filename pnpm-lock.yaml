@@ -24,8 +24,8 @@ importers:
         specifier: ^11.11.0
         version: 11.13.0(@emotion/react@11.13.3(@types/react@18.3.11)(react@18.3.1))(@types/react@18.3.11)(react@18.3.1)
       '@forestar-be/core':
-        specifier: ^0.2.2
-        version: 0.2.2(next@16.3.4(@babel/core@7.22.11)(@types/node@20.5.6)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^0.3.0
+        version: 0.3.0(next@16.3.4(@babel/core@7.22.11)(@types/node@20.5.6)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@mui/icons-material':
         specifier: ^6.1.2
         version: 6.1.2(@mui/material@6.1.9(@emotion/react@11.13.3(@types/react@18.3.11)(react@18.3.1))(@emotion/styled@11.13.0(@emotion/react@11.13.3(@types/react@18.3.11)(react@18.3.1))(@types/react@18.3.11)(react@18.3.1))(@types/react@18.3.11)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.11)(react@18.3.1)
@@ -1132,8 +1132,8 @@ packages:
   '@floating-ui/utils@0.2.8':
     resolution: {integrity: sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==}
 
-  '@forestar-be/core@0.2.2':
-    resolution: {integrity: sha512-xT64qt0eL0FWflPYcOPhzu5wbQgUfS+6wu7cVUzPQgyTC07riY8srxRxSlAfBznuqbQ/H9IqQ39/OcYWRsEb8g==, tarball: https://npm.pkg.github.com/download/@forestar-be/core/0.2.2/3d0cc9cb32b4c2f58f3ef7aca46e2d0d0394be5b}
+  '@forestar-be/core@0.3.0':
+    resolution: {integrity: sha512-R9qMc1d2cd352VtFZHuoyZPQ9O3kH3mWQnEI1oNb2KoMJSbgUyPIKxzmywNIIRHSgop13RZeAgwXuWZeHkK4dw==, tarball: https://npm.pkg.github.com/download/@forestar-be/core/0.3.0/a69209a2f7a84aab2963d127fed5e2bf58280d66}
     peerDependencies:
       next: '>=15'
       react: '>=18'
@@ -8251,7 +8251,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.8': {}
 
-  '@forestar-be/core@0.2.2(next@16.3.4(@babel/core@7.22.11)(@types/node@20.5.6)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@forestar-be/core@0.3.0(next@16.3.4(@babel/core@7.22.11)(@types/node@20.5.6)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       next: 16.3.4(@babel/core@7.22.11)(@types/node@20.5.6)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1

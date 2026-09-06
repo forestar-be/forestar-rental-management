@@ -23,6 +23,7 @@ import { useAuth } from '../hooks/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@mui/material';
 import { useUnsavedChanges } from '../hooks/UnsavedChangesProvider';
+import AccountMenu from '../components/AccountMenu';
 
 // Environment variables
 const URL_RENTAL_OPERATOR = process.env.REACT_APP_URL_RENTAL_OPERATOR;
@@ -159,17 +160,23 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                     <SettingsIcon fontSize="medium" />
                   </Tooltip>
                 </IconButton>
-                <IconButton
-                  onClick={() => {
-                    if (confirmNavigation()) auth.logOut();
-                  }}
-                  aria-label="Déconnexion"
-                  color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
-                >
-                  <Tooltip title="Déconnexion">
-                    <LogoutIcon fontSize="medium" />
-                  </Tooltip>
-                </IconButton>
+                {auth.ssoEnabled ? (
+                  // La garde de saisie en cours vaut aussi pour « changer de
+                  // compte » : les deux quittent l'application.
+                  <AccountMenu beforeLeave={confirmNavigation} />
+                ) : (
+                  <IconButton
+                    onClick={() => {
+                      if (confirmNavigation()) auth.logOut();
+                    }}
+                    aria-label="Déconnexion"
+                    color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
+                  >
+                    <Tooltip title="Déconnexion">
+                      <LogoutIcon fontSize="medium" />
+                    </Tooltip>
+                  </IconButton>
+                )}
               </Box>
             </>
           )}
