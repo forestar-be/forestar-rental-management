@@ -12,7 +12,6 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import HomeIcon from '@mui/icons-material/Home';
 import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import LaunchIcon from '@mui/icons-material/Launch';
 import { useTheme } from '@mui/material/styles';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -24,9 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@mui/material';
 import { useUnsavedChanges } from '../hooks/UnsavedChangesProvider';
 import AccountMenu from '../components/AccountMenu';
-
-// Environment variables
-const URL_RENTAL_OPERATOR = process.env.REACT_APP_URL_RENTAL_OPERATOR;
+import AppMenu from '../components/AppMenu';
 
 interface Props {
   onSidebarOpen: () => void;
@@ -60,10 +57,27 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
             '0 4px 18px 0px rgba(0, 0, 0, 0.12), 0 7px 10px -5px rgba(0, 0, 0, 0.15)',
         }}
       >
-        <Toolbar sx={{ minHeight: 70 }}>
+        {/*
+          Sur téléphone (< 900 px) la barre passe sur deux lignes : logo, bouton
+          Applications, compte et thème en haut ; navigation et paramètres en
+          dessous. Sur une seule ligne, le bouton avatar sortait de l'écran. L'ordre
+          visuel est porté par `order` ; à partir de `md` tout reprend l'ordre du DOM.
+        */}
+        <Toolbar
+          sx={{
+            minHeight: 70,
+            flexWrap: { xs: 'wrap', md: 'nowrap' },
+            py: { xs: 1, md: 0 },
+            rowGap: { xs: 1, md: 0 },
+          }}
+        >
           <Link
             href="/"
-            sx={{ textDecoration: 'none' }}
+            sx={{
+              textDecoration: 'none',
+              order: { xs: 0, md: 0 },
+              '& img': { height: { xs: 30, md: 50 } },
+            }}
             onClick={(e) => {
               e.preventDefault();
               navigateSafely('/');
@@ -71,7 +85,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
           >
             <Logo isDark={theme.palette.mode === 'dark'} />
           </Link>
-          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ flexGrow: 1, order: { xs: 1, md: 0 } }} />
           <Box
             sx={{
               alignItems: 'center',
@@ -80,7 +94,22 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
           ></Box>
           {auth.token && (
             <>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: { xs: 0.5, md: 1 },
+                  order: { xs: 6, md: 0 },
+                  '& .MuiButton-root': {
+                    px: { xs: 0.75, md: 2 },
+                    minWidth: 0,
+                    fontSize: { xs: '0.75rem', md: '0.875rem' },
+                  },
+                  '& .MuiButton-startIcon': { mr: { xs: 0.25, md: 1 } },
+                  '& .MuiButton-startIcon .MuiSvgIcon-root': {
+                    fontSize: { xs: 18, md: 24 },
+                  },
+                }}
+              >
                 <Button
                   component="a"
                   href={`/`}
@@ -123,18 +152,6 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                 >
                   Machines
                 </Button>
-                <Button
-                  component="a"
-                  href={URL_RENTAL_OPERATOR || ''}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Opérateur de Location"
-                  color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
-                  startIcon={<LaunchIcon fontSize="medium" />}
-                  variant="contained"
-                >
-                  Opérateur
-                </Button>
               </Box>
 
               <Divider
@@ -145,7 +162,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   display: { lg: 'flex', md: 'none', xs: 'none' },
                 }}
               />
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: { xs: 'contents', md: 'flex' }, gap: 1 }}>
                 <IconButton
                   component="a"
                   href={`/parametres`}
@@ -155,28 +172,40 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
                   }}
                   aria-label="Paramètres"
                   color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
+                  sx={{ order: { xs: 7, md: 0 } }}
                 >
                   <Tooltip title="Paramètres">
                     <SettingsIcon fontSize="medium" />
                   </Tooltip>
                 </IconButton>
-                {auth.ssoEnabled ? (
-                  // La garde de saisie en cours vaut aussi pour « changer de
-                  // compte » : les deux quittent l'application.
-                  <AccountMenu beforeLeave={confirmNavigation} />
-                ) : (
-                  <IconButton
-                    onClick={() => {
-                      if (confirmNavigation()) auth.logOut();
-                    }}
-                    aria-label="Déconnexion"
-                    color={theme.palette.mode === 'dark' ? 'warning' : 'inherit'}
-                  >
-                    <Tooltip title="Déconnexion">
-                      <LogoutIcon fontSize="medium" />
-                    </Tooltip>
-                  </IconButton>
-                )}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: 1,
+                    order: { xs: 2, md: 0 },
+                  }}
+                >
+                  <AppMenu current="rental-management" />
+                  {auth.ssoEnabled ? (
+                    // La garde de saisie en cours vaut aussi pour « changer de
+                    // compte » : les deux quittent l'application.
+                    <AccountMenu beforeLeave={confirmNavigation} />
+                  ) : (
+                    <IconButton
+                      onClick={() => {
+                        if (confirmNavigation()) auth.logOut();
+                      }}
+                      aria-label="Déconnexion"
+                      color={
+                        theme.palette.mode === 'dark' ? 'warning' : 'inherit'
+                      }
+                    >
+                      <Tooltip title="Déconnexion">
+                        <LogoutIcon fontSize="medium" />
+                      </Tooltip>
+                    </IconButton>
+                  )}
+                </Box>
               </Box>
             </>
           )}
@@ -188,7 +217,16 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
               display: { lg: 'flex', md: 'none', xs: 'none' },
             }}
           />
-          <Box sx={{ display: 'flex' }}>
+          {/* Saut de ligne (téléphone seulement) entre les deux rangées. */}
+          <Box
+            sx={{
+              display: { xs: 'block', md: 'none' },
+              flexBasis: '100%',
+              height: 0,
+              order: 5,
+            }}
+          />
+          <Box sx={{ display: 'flex', order: { xs: 3, md: 0 } }}>
             <IconButton
               onClick={colorMode.toggleColorMode}
               aria-label="Theme Mode"
