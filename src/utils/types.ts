@@ -26,8 +26,8 @@ export interface MachineRental {
   id: string;
   machineRentedId: string;
   variantId?: number | null;
-  rentalDate: Date | null;
-  returnDate: Date | null;
+  rentalDate: string | null;
+  returnDate: string | null;
   clientFirstName: string;
   clientLastName: string;
   clientEmail: string;
@@ -152,7 +152,7 @@ export interface MachineRented {
   deposit: number;
   reservationDepositMode: 'PERCENT' | 'FIXED';
   reservationDepositValue: number;
-  forbiddenRentalDays: Date[];
+  forbiddenRentalDays: string[];
   operatingHours: number | null;
   fuelLevel: number | null;
   lastMeasurementUpdate: Date | null;

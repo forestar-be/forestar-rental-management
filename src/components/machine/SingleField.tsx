@@ -71,7 +71,11 @@ const DatePickerField: React.FC<Props> = ({
 }) => (
   <DatePicker
     shouldDisableDate={shouldDisableDate}
-    timezone={'Europe/Paris'}
+    timezone={
+      name === 'rentalDate' || name === 'returnDate'
+        ? undefined
+        : 'Europe/Paris'
+    }
     sx={{ margin: size === 'small' ? '8px 0' : '5px 0' }}
     label={label}
     format={'DD/MM/YYYY'}
@@ -80,7 +84,16 @@ const DatePickerField: React.FC<Props> = ({
         ? dayjs(value as Date | string)
         : null
     }
-    onChange={(date) => handleChange(date?.toDate() ?? new Date(), name)}
+    onChange={(date) =>
+      handleChange(
+        name === 'rentalDate' || name === 'returnDate'
+          ? date?.isValid()
+            ? date.format('YYYY-MM-DD')
+            : null
+          : (date?.toDate() ?? null),
+        name,
+      )
+    }
     slotProps={{
       textField: {
         id: `field-${label}`,
