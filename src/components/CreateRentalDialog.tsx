@@ -443,7 +443,6 @@ const CreateRentalDialog = (props: {
                   (forbiddenDate) => dayjs(forbiddenDate).isSame(date, 'day'),
                 ) ?? false
               }
-              timezone={'Europe/Paris'}
               label="Date de location"
               format={'DD/MM/YYYY'}
               value={
@@ -473,7 +472,6 @@ const CreateRentalDialog = (props: {
                   (forbiddenDate) => dayjs(forbiddenDate).isSame(date, 'day'),
                 ) ?? false
               }
-              timezone={'Europe/Paris'}
               label="Date de retour"
               value={
                 props.formik.values.returnDate

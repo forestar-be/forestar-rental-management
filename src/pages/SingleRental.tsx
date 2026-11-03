@@ -374,10 +374,6 @@ const SingleRental = () => {
     const fetchData = async () => {
       try {
         const fetchedRental = await fetchMachineRentalById(id, auth.token);
-        fetchedRental.machineRented.forbiddenRentalDays =
-          fetchedRental.machineRented.forbiddenRentalDays.map(
-            (date) => new Date(date),
-          );
         setInitialRental(cloneDeep(fetchedRental));
         setRental(fetchedRental);
       } catch (error) {

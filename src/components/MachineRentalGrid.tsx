@@ -1,3 +1,4 @@
+import { formatRentalDay } from '../utils/rentalDates.util';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -118,7 +119,7 @@ const MachineRentalGrid: React.FC<MachineRentalGridProps> = ({
   const formatDate = useCallback(
     (params: { value: string }) =>
       params.value
-        ? new Date(params.value).toLocaleDateString('fr-FR')
+        ? formatRentalDay(params.value)
         : 'Non défini',
     [],
   );

@@ -1,3 +1,4 @@
+import { isRentalDay } from '../utils/rentalDates.util';
 import '../styles/Home.css';
 import {
   MachineRentalToCreate,
@@ -47,16 +48,23 @@ const validationSchema = yup.object({
   clientCity: yup.string(),
   clientPostal: yup.string().matches(postalRegex, 'Code postal invalide'),
   rentalDate: yup
-    .date()
+    .string()
+    .nullable()
     .required('Date de location est requise')
-    .typeError('Date invalide'),
+    .test('day', 'Date invalide', isRentalDay),
   returnDate: yup
-    .date()
+    .string()
+    .nullable()
     .required('Date de retour est requise')
-    .typeError('Date invalide')
-    .min(
-      yup.ref('rentalDate'),
+    .test('day', 'Date invalide', isRentalDay)
+    .test(
+      'order',
       'Date de retour doit être après la date de location',
+      function (value) {
+        return (
+          !value || !this.parent.rentalDate || value >= this.parent.rentalDate
+        );
+      },
     ),
   guests: yup.array().of(yup.string().email('Email invalide')),
 });
@@ -90,7 +98,7 @@ const Home = (): JSX.Element => {
   const handleClickOpen = (machine: MachineRentedSimpleWithImage) => {
     const machineCopy = {
       ...machine,
-      forbiddenRentalDays: machine.forbiddenRentalDays.map((d) => new Date(d)),
+      forbiddenRentalDays: machine.forbiddenRentalDays,
     };
     setSelectedMachine(machineCopy);
     setOpen(true);
@@ -251,10 +259,16 @@ const Home = (): JSX.Element => {
         loadingCreate={loadingCreate}
         formik={formik}
         onChangeRentalDate={(date) =>
-          formik.setFieldValue('rentalDate', date ? date.toDate() : null)
+          formik.setFieldValue(
+            'rentalDate',
+            date?.isValid() ? date.format('YYYY-MM-DD') : null,
+          )
         }
         onChangeReturnDate={(date) =>
-          formik.setFieldValue('returnDate', date ? date.toDate() : null)
+          formik.setFieldValue(
+            'returnDate',
+            date?.isValid() ? date.format('YYYY-MM-DD') : null,
+          )
         }
       />
       <ConfirmDialog
