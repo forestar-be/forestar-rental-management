@@ -57,6 +57,7 @@ import {
 } from '../utils/notifications';
 import MachineParts from '../components/machine/MachineParts';
 import MachineAddons from '../components/machine/MachineAccessories';
+import MachineEquivalences from '../components/machine/MachineEquivalences';
 import MachineCategories from '../components/machine/MachineCategories';
 import MultiImageUpload from '../components/machine/MultiImageUpload';
 import MachineVariants, {
@@ -591,6 +592,7 @@ const SingleMachine = () => {
             <Tab label="Configuration" />
             <Tab label="Variantes" />
             <Tab label="Locations" />
+            <Tab label="Équivalences" />
           </Tabs>
 
           {/* Tab content */}
@@ -931,6 +933,10 @@ const SingleMachine = () => {
                 onMachineUpdate={refreshMachine}
                 token={auth.token}
               />
+            )}
+
+            {tabValue === 4 && (
+              <MachineEquivalences key={machine.id} machine={machine} token={auth.token} />
             )}
 
             {/* Locations tab */}
