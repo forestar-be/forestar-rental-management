@@ -508,7 +508,10 @@ export function getRentalEquivalences(
   machineId: number,
   variantId: number | null,
 ): Promise<
-  RentalEquivalenceList & { configurations: RentalEquivalenceConfiguration[] }
+  RentalEquivalenceList & {
+    configurations: RentalEquivalenceConfiguration[];
+    labels?: Record<string, string>;
+  }
 > {
   const query = variantId === null ? '' : `?variant_id=${variantId}`;
   return apiRequest(

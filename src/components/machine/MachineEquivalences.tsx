@@ -35,6 +35,7 @@ export default function MachineEquivalences({
   const [configurations, setConfigurations] = useState<
     RentalEquivalenceConfiguration[]
   >([]);
+  const [labels, setLabels] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [choice, setChoice] = useState('');
@@ -49,9 +50,10 @@ export default function MachineEquivalences({
     setDirty(false);
     setChoice('');
     getRentalEquivalences(token, Number(machine.id), source).then(
-      ({ configurations, ...list }) => {
+      ({ configurations, labels, ...list }) => {
         if (!active) return;
         setConfigurations(configurations);
+        setLabels(labels ?? {});
         setList(list);
       },
       (error: Error) => {
@@ -62,6 +64,22 @@ export default function MachineEquivalences({
       active = false;
     };
   }, [machine.id, token, source, reload]);
+
+  const unavailable = (list?.entries ?? [])
+    .filter(
+      (entry) =>
+        !configurations.some(
+          (item) => configurationKey(item) === configurationKey(entry),
+        ),
+    )
+    .map((entry) => removedName(entry));
+
+  function removedName(entry: RentalEquivalenceEntry) {
+    return (
+      labels[configurationKey(entry)] ??
+      `machine n° ${entry.machineId}${entry.variantId ? `, variante n° ${entry.variantId}` : ''}`
+    );
+  }
 
   function change(patch: Partial<RentalEquivalenceList>) {
     setList((current) => current && { ...current, ...patch });
@@ -131,6 +149,17 @@ export default function MachineEquivalences({
         <Typography role="status">Chargement des équivalences…</Typography>
       )}
       {saved && <Alert severity="success">Équivalences enregistrées.</Alert>}
+      {!!unavailable.length && (
+        <Alert severity="warning">
+          {unavailable.length > 1
+            ? 'Ces destinations ne sont plus proposées au catalogue'
+            : 'Cette destination n’est plus proposée au catalogue'}{' '}
+          : {unavailable.join(', ')}.{' '}
+          {list?.inherits
+            ? 'Retirez-la de la liste de la machine de base.'
+            : 'Retirez-la avant d’enregistrer.'}
+        </Alert>
+      )}
       {list && list.variantId === source && (
         <>
           {source !== null && (
@@ -140,10 +169,13 @@ export default function MachineEquivalences({
               value={list.inherits ? 'inherited' : 'specific'}
               disabled={saving}
               onChange={(event) =>
-                change({
-                  inherits: event.target.value === 'inherited',
-                  entries: [],
-                })
+                // Une liste spécifique part de la liste héritée affichée :
+                // le gestionnaire l'ajuste au lieu de la ressaisir.
+                change(
+                  event.target.value === 'inherited'
+                    ? { inherits: true, entries: [] }
+                    : { inherits: false, entries: list.entries },
+                )
               }
             >
               <MenuItem value="inherited">Hériter de la machine</MenuItem>
@@ -155,7 +187,7 @@ export default function MachineEquivalences({
             const name =
               configurations.find((item) => configurationKey(item) === key)
                 ?.name ??
-              `Configuration masquée (${entry.machineId}${entry.variantId ? ` / ${entry.variantId}` : ''})`;
+              `${removedName(entry)} (retirée du catalogue)`;
             const move = (direction: number) => {
               const entries = [...list.entries];
               [entries[index], entries[index + direction]] = [
@@ -287,7 +319,9 @@ export default function MachineEquivalences({
           <Stack direction="row" spacing={1}>
             <Button
               variant="contained"
-              disabled={!dirty || saving}
+              disabled={
+                !dirty || saving || (!list.inherits && !!unavailable.length)
+              }
               onClick={save}
             >
               Enregistrer les équivalences
