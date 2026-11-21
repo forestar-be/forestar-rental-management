@@ -482,3 +482,54 @@ export const deleteVariantImage = async (
     token,
   );
 };
+
+export type RentalEquivalenceEntry = {
+  machineId: number;
+  variantId: number | null;
+  note: string;
+};
+
+export type RentalEquivalenceList = {
+  variantId: number | null;
+  revision: string;
+  inherits: boolean;
+  entries: RentalEquivalenceEntry[];
+};
+
+export type RentalEquivalenceConfiguration = Omit<
+  RentalEquivalenceEntry,
+  'note'
+> & {
+  name: string;
+};
+
+export function getRentalEquivalences(
+  token: string,
+  machineId: number,
+  variantId: number | null,
+): Promise<
+  RentalEquivalenceList & {
+    configurations: RentalEquivalenceConfiguration[];
+    labels?: Record<string, string>;
+  }
+> {
+  const query = variantId === null ? '' : `?variant_id=${variantId}`;
+  return apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/equivalences${query}`,
+    'GET',
+    token,
+  );
+}
+
+export function saveRentalEquivalences(
+  token: string,
+  machineId: number,
+  list: RentalEquivalenceList,
+): Promise<RentalEquivalenceList> {
+  return apiRequest(
+    `/rental-mngt/machine-rented/${machineId}/equivalences`,
+    'PUT',
+    token,
+    list,
+  );
+}
