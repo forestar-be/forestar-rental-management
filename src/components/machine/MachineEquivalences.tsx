@@ -11,6 +11,7 @@ import {
   getRentalEquivalences,
   saveRentalEquivalences,
   RentalEquivalenceConfiguration,
+  RentalEquivalenceDisplayWhen,
   RentalEquivalenceEntry,
   RentalEquivalenceList,
 } from '../../utils/api';
@@ -20,6 +21,49 @@ function configurationKey(
   item: Pick<RentalEquivalenceEntry, 'machineId' | 'variantId'>,
 ) {
   return `${item.machineId}:${item.variantId ?? 'base'}`;
+}
+
+const displayWhenOptions: {
+  value: RentalEquivalenceDisplayWhen;
+  label: string;
+}[] = [
+  { value: 'ALWAYS', label: 'Toujours' },
+  {
+    value: 'WHEN_OCCUPIED',
+    label: 'Seulement si la machine demandée est occupée',
+  },
+];
+
+const money = new Intl.NumberFormat('fr-BE', {
+  style: 'currency',
+  currency: 'EUR',
+});
+
+// Même règle que la vitrine : tarif de la destination et écart journalier signé par rapport
+// à la machine demandée ; « Tarif sur demande » et aucun écart si un des deux tarifs manque.
+function describePrice(
+  sourcePrice: number | null | undefined,
+  price: number | null | undefined,
+) {
+  if (price == null) return 'Tarif sur demande';
+  const label = `${money.format(price)} TTC / jour`;
+  if (sourcePrice == null) return label;
+  const delta = price - sourcePrice;
+  const gap =
+    delta === 0
+      ? 'Même tarif journalier'
+      : `${delta > 0 ? '+' : '−'}${money.format(Math.abs(delta))} / jour`;
+  return `${label} · écart vu par le client : ${gap}`;
+}
+
+// Une réponse sans mode (ancien serveur) vaut « Seulement si occupée ».
+function modeOf(entry: RentalEquivalenceEntry): RentalEquivalenceDisplayWhen {
+  return entry.displayWhen ?? 'WHEN_OCCUPIED';
+}
+
+// « Toujours » affiche la note au client comme bénéfice : le serveur refuse une note vide.
+function missingBenefit(entry: RentalEquivalenceEntry) {
+  return modeOf(entry) === 'ALWAYS' && !entry.note.trim();
 }
 
 export default function MachineEquivalences({
@@ -36,6 +80,7 @@ export default function MachineEquivalences({
     RentalEquivalenceConfiguration[]
   >([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
+  const [sourcePrice, setSourcePrice] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [choice, setChoice] = useState('');
@@ -50,9 +95,10 @@ export default function MachineEquivalences({
     setDirty(false);
     setChoice('');
     getRentalEquivalences(token, Number(machine.id), source).then(
-      ({ configurations, labels, ...list }) => {
+      ({ configurations, labels, source_price_per_day, ...list }) => {
         if (!active) return;
         setConfigurations(configurations);
+        setSourcePrice(source_price_per_day ?? null);
         setLabels(labels ?? {});
         setList(list);
       },
@@ -92,13 +138,33 @@ export default function MachineEquivalences({
     setSaving(true);
     setError('');
     try {
+      // Le mode est toujours envoyé explicitement : il suit la destination, pas son rang.
+      const entries = list.inherits
+        ? []
+        : list.entries.map((entry) => ({
+            ...entry,
+            displayWhen: modeOf(entry),
+          }));
       const result = await saveRentalEquivalences(token, Number(machine.id), {
         ...list,
-        entries: list.inherits ? [] : list.entries,
+        entries,
       });
       setList(result);
       setDirty(false);
       setSaved(true);
+      // Un serveur trop ancien ignore le mode sans erreur : ne pas laisser croire qu'il est gardé.
+      if (
+        entries.some(
+          (entry, index) =>
+            entry.displayWhen === 'ALWAYS' &&
+            result.entries[index]?.displayWhen !== 'ALWAYS',
+        )
+      ) {
+        setSaved(false);
+        setError(
+          'Le serveur n’a pas conservé le mode « Toujours ». Rechargez la page puis vérifiez les suggestions.',
+        );
+      }
     } catch (error) {
       setError(
         error instanceof Error ? error.message : 'Échec de l’enregistrement.',
@@ -110,10 +176,11 @@ export default function MachineEquivalences({
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 780 }}>
-      <Typography variant="h6">Équivalences de location</Typography>
+      <Typography variant="h6">Suggestions de location</Typography>
       <Typography variant="body2">
-        Les machines disponibles sont proposées dans cet ordre. La différence
-        saisie s’affiche sur la vitrine.
+        Vous choisissez les machines proposées au client et leur ordre. Chaque
+        suggestion indique quand elle est proposée ; le bénéfice saisi s’affiche
+        sur la vitrine.
       </Typography>
       <TextField
         select
@@ -146,9 +213,9 @@ export default function MachineEquivalences({
         </Alert>
       )}
       {!list && !error && (
-        <Typography role="status">Chargement des équivalences…</Typography>
+        <Typography role="status">Chargement des suggestions…</Typography>
       )}
-      {saved && <Alert severity="success">Équivalences enregistrées.</Alert>}
+      {saved && <Alert severity="success">Suggestions enregistrées.</Alert>}
       {!!unavailable.length && (
         <Alert severity="warning">
           {unavailable.length > 1
@@ -182,11 +249,19 @@ export default function MachineEquivalences({
               <MenuItem value="specific">Liste spécifique</MenuItem>
             </TextField>
           )}
+          {list.inherits && !!list.entries.length && (
+            <Typography variant="body2">
+              Liste héritée de la machine : modes et bénéfices sont en lecture
+              seule. Modifiez-les depuis la machine de base.
+            </Typography>
+          )}
           {list.entries.map((entry, index) => {
             const key = configurationKey(entry);
+            const configuration = configurations.find(
+              (item) => configurationKey(item) === key,
+            );
             const name =
-              configurations.find((item) => configurationKey(item) === key)
-                ?.name ??
+              configuration?.name ??
               `${removedName(entry)} (retirée du catalogue)`;
             const move = (direction: number) => {
               const entries = [...list.entries];
@@ -210,10 +285,47 @@ export default function MachineEquivalences({
                 <Typography fontWeight={600}>
                   {index + 1}. {name}
                 </Typography>
+                {configuration && (
+                  <Typography variant="body2" color="text.secondary">
+                    {describePrice(sourcePrice, configuration.price_per_day)}
+                  </Typography>
+                )}
                 <TextField
-                  label="Différence visible sur la vitrine"
+                  select
+                  label="Quand proposer cette machine ?"
+                  value={modeOf(entry)}
+                  disabled={list.inherits || saving}
+                  onChange={(event) =>
+                    change({
+                      entries: list.entries.map((item, position) =>
+                        position === index
+                          ? {
+                              ...item,
+                              displayWhen: event.target
+                                .value as RentalEquivalenceDisplayWhen,
+                            }
+                          : item,
+                      ),
+                    })
+                  }
+                >
+                  {displayWhenOptions.map((option) => (
+                    <MenuItem value={option.value} key={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  label="Bénéfice affiché au client"
                   value={entry.note}
                   disabled={list.inherits || saving}
+                  required={modeOf(entry) === 'ALWAYS'}
+                  error={missingBenefit(entry)}
+                  helperText={
+                    missingBenefit(entry)
+                      ? '« Toujours » exige un bénéfice : c’est le texte que le client lit sous le nom de la machine.'
+                      : undefined
+                  }
                   inputProps={{ maxLength: 240 }}
                   onChange={(event) =>
                     change({
@@ -261,7 +373,7 @@ export default function MachineEquivalences({
             <Typography variant="body2">
               {list.inherits && dirty
                 ? 'La liste de la machine sera appliquée à l’enregistrement.'
-                : 'Aucune équivalence manuelle.'}
+                : 'Aucune suggestion manuelle.'}
             </Typography>
           )}
           {!list.inherits && (
@@ -306,6 +418,7 @@ export default function MachineEquivalences({
                         machineId: item.machineId,
                         variantId: item.variantId,
                         note: '',
+                        displayWhen: 'WHEN_OCCUPIED',
                       },
                     ],
                   });
@@ -320,11 +433,14 @@ export default function MachineEquivalences({
             <Button
               variant="contained"
               disabled={
-                !dirty || saving || (!list.inherits && !!unavailable.length)
+                !dirty ||
+                saving ||
+                (!list.inherits &&
+                  (!!unavailable.length || list.entries.some(missingBenefit)))
               }
               onClick={save}
             >
-              Enregistrer les équivalences
+              Enregistrer les suggestions
             </Button>
             <Button
               disabled={!dirty || saving}

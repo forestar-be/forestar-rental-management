@@ -592,7 +592,7 @@ const SingleMachine = () => {
             <Tab label="Configuration" />
             <Tab label="Variantes" />
             <Tab label="Locations" />
-            <Tab label="Équivalences" />
+            <Tab label="Suggestions" />
           </Tabs>
 
           {/* Tab content */}
