@@ -34,6 +34,28 @@ const displayWhenOptions: {
   },
 ];
 
+const money = new Intl.NumberFormat('fr-BE', {
+  style: 'currency',
+  currency: 'EUR',
+});
+
+// Même règle que la vitrine : tarif de la destination et écart journalier signé par rapport
+// à la machine demandée ; « Tarif sur demande » et aucun écart si un des deux tarifs manque.
+function describePrice(
+  sourcePrice: number | null | undefined,
+  price: number | null | undefined,
+) {
+  if (price == null) return 'Tarif sur demande';
+  const label = `${money.format(price)} TTC / jour`;
+  if (sourcePrice == null) return label;
+  const delta = price - sourcePrice;
+  const gap =
+    delta === 0
+      ? 'Même tarif journalier'
+      : `${delta > 0 ? '+' : '−'}${money.format(Math.abs(delta))} / jour`;
+  return `${label} · écart vu par le client : ${gap}`;
+}
+
 // Une réponse sans mode (ancien serveur) vaut « Seulement si occupée ».
 function modeOf(entry: RentalEquivalenceEntry): RentalEquivalenceDisplayWhen {
   return entry.displayWhen ?? 'WHEN_OCCUPIED';
@@ -58,6 +80,7 @@ export default function MachineEquivalences({
     RentalEquivalenceConfiguration[]
   >([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
+  const [sourcePrice, setSourcePrice] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [choice, setChoice] = useState('');
@@ -72,9 +95,10 @@ export default function MachineEquivalences({
     setDirty(false);
     setChoice('');
     getRentalEquivalences(token, Number(machine.id), source).then(
-      ({ configurations, labels, ...list }) => {
+      ({ configurations, labels, source_price_per_day, ...list }) => {
         if (!active) return;
         setConfigurations(configurations);
+        setSourcePrice(source_price_per_day ?? null);
         setLabels(labels ?? {});
         setList(list);
       },
@@ -233,9 +257,12 @@ export default function MachineEquivalences({
           )}
           {list.entries.map((entry, index) => {
             const key = configurationKey(entry);
+            const configuration = configurations.find(
+              (item) => configurationKey(item) === key,
+            );
             const name =
-              configurations.find((item) => configurationKey(item) === key)
-                ?.name ?? `${removedName(entry)} (retirée du catalogue)`;
+              configuration?.name ??
+              `${removedName(entry)} (retirée du catalogue)`;
             const move = (direction: number) => {
               const entries = [...list.entries];
               [entries[index], entries[index + direction]] = [
@@ -258,6 +285,11 @@ export default function MachineEquivalences({
                 <Typography fontWeight={600}>
                   {index + 1}. {name}
                 </Typography>
+                {configuration && (
+                  <Typography variant="body2" color="text.secondary">
+                    {describePrice(sourcePrice, configuration.price_per_day)}
+                  </Typography>
+                )}
                 <TextField
                   select
                   label="Quand proposer cette machine ?"

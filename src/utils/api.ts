@@ -504,6 +504,8 @@ export type RentalEquivalenceConfiguration = Omit<
   'note' | 'displayWhen'
 > & {
   name: string;
+  // Tarif TTC/jour public ; absent d'un ancien serveur, null quand le tarif manque.
+  price_per_day?: number | null;
 };
 
 export function getRentalEquivalences(
@@ -514,6 +516,7 @@ export function getRentalEquivalences(
   RentalEquivalenceList & {
     configurations: RentalEquivalenceConfiguration[];
     labels?: Record<string, string>;
+    source_price_per_day?: number | null;
   }
 > {
   const query = variantId === null ? '' : `?variant_id=${variantId}`;
