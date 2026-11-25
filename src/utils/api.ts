@@ -36,9 +36,7 @@ const apiRequest = async (
     // 2026-09-06 celui-ci vaut une sentinelle non vide en mode SSO, pour
     // que les tests `if (!token)` du code hérité restent justes. Sans
     // cette garde, la sentinelle partirait en en-tête `Authorization`.
-    ...(!SSO_ENABLED && token
-      ? { Authorization: `Bearer ${token}` }
-      : {}),
+    ...(!SSO_ENABLED && token ? { Authorization: `Bearer ${token}` } : {}),
     ...(additionalHeaders as Record<string, string>),
   };
 
@@ -483,10 +481,15 @@ export const deleteVariantImage = async (
   );
 };
 
+// Quand une suggestion est proposée au client : toujours, ou seulement quand la machine
+// demandée est occupée. Une réponse sans le champ (ancien serveur) vaut WHEN_OCCUPIED.
+export type RentalEquivalenceDisplayWhen = 'WHEN_OCCUPIED' | 'ALWAYS';
+
 export type RentalEquivalenceEntry = {
   machineId: number;
   variantId: number | null;
   note: string;
+  displayWhen?: RentalEquivalenceDisplayWhen;
 };
 
 export type RentalEquivalenceList = {
@@ -498,7 +501,7 @@ export type RentalEquivalenceList = {
 
 export type RentalEquivalenceConfiguration = Omit<
   RentalEquivalenceEntry,
-  'note'
+  'note' | 'displayWhen'
 > & {
   name: string;
 };
