@@ -10,7 +10,7 @@ confidence: draft
 
 # Repository memory
 
-- [Équivalences de location](equivalences-location.md) — listes ordonnées, variantes et révisions dans la fiche machine.
+- [Suggestions de location (équivalences)](equivalences-location.md) — modes Toujours / si occupée, listes ordonnées, variantes et révisions dans la fiche machine.
 
 Use `.agents/guides/memory.md` for the read/write/review protocol. Choose one runtime
 variant and record its commands in the project's instructions.
